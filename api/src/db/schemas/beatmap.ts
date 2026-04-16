@@ -1,0 +1,51 @@
+import {
+  decimal,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  smallint,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { beatmapset } from "./beatmapset.ts";
+
+export const beatmap = pgTable(
+  "beatmap",
+  {
+    id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+    osuId: integer("osu_id").unique(),
+    beatmapsetId: integer("beatmapset_id").references(() => beatmapset.id, {
+      onDelete: "cascade",
+    }),
+    difficulty: varchar("difficulty", { length: 255 }).notNull(),
+    osuHash: varchar("osu_hash", { length: 128 }).notNull().unique(),
+    notesHash: varchar("notes_hash", { length: 128 }).notNull().unique(),
+    countCircles: integer("count_circles").notNull(),
+    countSliders: integer("count_sliders").notNull(),
+    countSpinners: integer("count_spinners").notNull(),
+    maxCombo: integer("max_combo").notNull(),
+    mainPattern: jsonb("main_pattern").notNull(),
+    drainTime: integer("drain_time").notNull(),
+    totalTime: integer("total_time").notNull(),
+    bpm: decimal("bpm", { precision: 10, scale: 2 }).notNull(),
+    cs: decimal("cs", { precision: 3, scale: 1 }).notNull(),
+    ar: decimal("ar", { precision: 3, scale: 1 }).notNull(),
+    od: decimal("od", { precision: 3, scale: 1 }).notNull(),
+    hp: decimal("hp", { precision: 3, scale: 1 }).notNull(),
+    mode: smallint("mode").notNull().default(3),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (t) => [
+    index("idx_beatmap_beatmapset_id").on(t.beatmapsetId),
+    index("idx_beatmap_mode").on(t.mode),
+    index("idx_beatmap_status").on(t.status),
+    index("idx_beatmap_bpm").on(t.bpm),
+    index("idx_beatmap_total_time").on(t.totalTime),
+    index("idx_beatmap_drain_time").on(t.drainTime),
+    index("idx_beatmap_od").on(t.od),
+    index("idx_beatmap_cs").on(t.cs),
+  ],
+);

@@ -1,0 +1,16 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: build/postgres/Dockerfile
+    environment:
+      POSTGRES_USER: osef
+      POSTGRES_PASSWORD: osef
+      POSTGRES_DB: osef
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

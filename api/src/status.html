@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>prism.am — status</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1c1c1c;
+      color: #e4e4e4;
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* same particle bg as landing */
+    #bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .page {
+      position: relative;
+      z-index: 2;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
+
+    /* ── nav ── */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3rem;
+    }
+
+    .logo {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: #e4e4e4;
+      text-decoration: none;
+      opacity: 0.6;
+    }
+    .logo:hover { opacity: 1; }
+
+    .nav-updated {
+      font-size: 0.72rem;
+      color: #666;
+    }
+
+    /* ── global status ── */
+    .global {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .global-icon {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.2rem;
+    }
+    .global-icon.ok     { background: rgba(74,222,128,0.15); }
+    .global-icon.warn   { background: rgba(250,204,21,0.15); }
+    .global-icon.outage { background: rgba(248,113,113,0.15); }
+
+    .global-text h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+    .global-text h1.ok     { color: #4ade80; }
+    .global-text h1.warn   { color: #facc15; }
+    .global-text h1.outage { color: #f87171; }
+
+    .global-text p {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.2rem;
+    }
+
+    /* ── section label ── */
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 1rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    /* ── service row ── */
+    .service {
+      padding: 1.2rem 0;
+      border-bottom: 1px solid #242424;
+    }
+
+    .service-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .service-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .service-right {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .service-uptime {
+      font-size: 0.75rem;
+      color: #666;
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot.operational { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.5); }
+    .dot.degraded    { background: #facc15; box-shadow: 0 0 6px rgba(250,204,21,0.5); }
+    .dot.outage      { background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,0.5); }
+    .dot.no_data     { background: #3a3a3a; }
+
+    .status-label {
+      font-size: 0.75rem;
+    }
+    .status-label.operational { color: #4ade80; }
+    .status-label.degraded    { color: #facc15; }
+    .status-label.outage      { color: #f87171; }
+    .status-label.no_data     { color: #555; }
+
+    /* ── uptime bars (Atlassian style) ── */
+    .bars-wrap {
+      position: relative;
+    }
+
+    .bars {
+      display: flex;
+      gap: 2px;
+      height: 28px;
+    }
+
+    .bar {
+      flex: 1;
+      border-radius: 2px;
+      position: relative;
+      cursor: default;
+    }
+    .bar:hover .tip { display: block; }
+
+    .bar.operational { background: #4ade80; opacity: 0.8; }
+    .bar.degraded    { background: #facc15; opacity: 0.9; }
+    .bar.outage      { background: #f87171; opacity: 0.9; }
+    .bar.no_data     { background: #2e2e2e; }
+
+    .tip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.7rem;
+      color: #ccc;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .bars-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.4rem;
+      font-size: 0.68rem;
+      color: #555;
+    }
+
+    /* ── incidents ── */
+    .incidents-section {
+      margin-top: 3rem;
+    }
+
+    .incident-group {
+      margin-bottom: 2rem;
+    }
+
+    .incident-date {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #666;
+      margin-bottom: 0.8rem;
+    }
+
+    .incident-card {
+      background: #222;
+      border: 1px solid #2e2e2e;
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .incident-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .pill {
+      font-size: 0.67rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+    .pill.degraded { background: rgba(250,204,21,0.15); color: #facc15; }
+    .pill.outage   { background: rgba(248,113,113,0.15); color: #f87171; }
+
+    .incident-svc {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #aaa;
+    }
+
+    .incident-duration {
+      margin-left: auto;
+      font-size: 0.7rem;
+      color: #555;
+    }
+
+    .incident-comment {
+      font-size: 0.82rem;
+      color: #bbb;
+      line-height: 1.5;
+    }
+
+    .no-incidents {
+      font-size: 0.82rem;
+      color: #555;
+      padding: 1rem 0;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <div class="page">
+    <nav class="nav">
+      <a href="/" class="logo">PRISM</a>
+      <span class="nav-updated" id="updated"></span>
+    </nav>
+
+    <div class="global" id="global">
+      <div class="global-icon ok" id="global-icon">✓</div>
+      <div class="global-text">
+        <h1 class="ok" id="global-title">All Systems Operational</h1>
+        <p id="global-sub">No incidents reported in the last 30 days</p>
+      </div>
+    </div>
+
+    <div class="section-label">Services</div>
+    <div id="services"></div>
+
+    <div class="incidents-section">
+      <div class="section-label">Past Incidents</div>
+      <div id="incidents"></div>
+    </div>
+  </div>
+
+  <script>
+    // ── particle mesh (grid-accelerated, fixed canvas) ──────
+    const canvas = document.getElementById('bg');
+    const ctx    = canvas.getContext('2d');
+
+    let W = window.innerWidth, H = window.innerHeight;
+    canvas.width  = W;
+    canvas.height = H;
+
+    window.addEventListener('resize', () => {
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = W; canvas.height = H;
+    });
+
+    const PARTICLE_COUNT = 60;
+    const CONNECT_DIST   = 160;
+    const SPEED          = 0.35;
+    const CELL           = CONNECT_DIST;
+
+    const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
+      x  : Math.random() * W,
+      y  : Math.random() * H,
+      vx : (Math.random() - 0.5) * SPEED,
+      vy : (Math.random() - 0.5) * SPEED,
+    }));
+
+    function buildGrid() {
+      const cols = Math.ceil(W / CELL);
+      const rows = Math.ceil(H / CELL);
+      const grid = new Array(cols * rows).fill(null).map(() => []);
+      for (const p of particles) {
+        const cx = Math.min(Math.floor(p.x / CELL), cols - 1);
+        const cy = Math.min(Math.floor(p.y / CELL), rows - 1);
+        grid[cy * cols + cx].push(p);
+      }
+      return { grid, cols, rows };
+    }
+
+    function tickBg() {
+      ctx.clearRect(0, 0, W, H);
+
+      for (const p of particles) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) { p.x = 0; p.vx *= -1; }
+        if (p.x > W) { p.x = W; p.vx *= -1; }
+        if (p.y < 0) { p.y = 0; p.vy *= -1; }
+        if (p.y > H) { p.y = H; p.vy *= -1; }
+      }
+
+      const { grid, cols, rows } = buildGrid();
+      const seen = new Set();
+
+      for (let cy = 0; cy < rows; cy++) {
+        for (let cx = 0; cx < cols; cx++) {
+          const cell = grid[cy * cols + cx];
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = cx + dx, ny = cy + dy;
+              if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+              const ncell = grid[ny * cols + nx];
+              for (const a of cell) {
+                for (const b of ncell) {
+                  if (a === b) continue;
+                  const ia = particles.indexOf(a), ib = particles.indexOf(b);
+                  const key = ia < ib ? `${ia}-${ib}` : `${ib}-${ia}`;
+                  if (seen.has(key)) continue;
+                  seen.add(key);
+                  const d = Math.hypot(a.x - b.x, a.y - b.y);
+                  if (d > CONNECT_DIST) continue;
+                  const t = 1 - d / CONNECT_DIST;
+                  ctx.beginPath();
+                  ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+                  ctx.strokeStyle = `rgba(255,40,40,${t * 0.35})`;
+                  ctx.lineWidth = t * 1.2;
+                  ctx.stroke();
+                }
+              }
+            }
+          }
+        }
+      }
+
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,80,80,0.55)';
+        ctx.fill();
+      }
+
+      requestAnimationFrame(tickBg);
+    }
+    tickBg();
+
+    // ── status data ─────────────────────────────────────────
+    const LABELS = { database: 'Database', api: 'API', calculator: 'Calculator' };
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function fmtDuration(s) {
+      if (!s) return '';
+      if (s < 60)   return `${s}s`;
+      if (s < 3600) return `${Math.round(s / 60)}min`;
+      return `${(s / 3600).toFixed(1)}h`;
+    }
+
+    function uptimePct(days) {
+      const valid = days.filter(d => d.status !== 'no_data');
+      if (!valid.length) return null;
+      return ((valid.filter(d => d.status === 'operational').length / valid.length) * 100).toFixed(2);
+    }
+
+    function renderService(svc) {
+      const pct = uptimePct(svc.days);
+      const bars = svc.days.map(d => {
+        const label = d.status === 'no_data' ? 'No data' : d.status.charAt(0).toUpperCase() + d.status.slice(1);
+        return `<div class="bar ${d.status}"><div class="tip">${fmtDate(d.date)} — ${label}</div></div>`;
+      }).join('');
+
+      return `
+        <div class="service">
+          <div class="service-header">
+            <span class="service-name">${LABELS[svc.service] ?? svc.service}</span>
+            <div class="service-right">
+              ${pct !== null ? `<span class="service-uptime">${pct}% uptime</span>` : ''}
+              <div class="dot ${svc.current}"></div>
+              <span class="status-label ${svc.current}">${svc.current === 'no_data' ? 'No data' : svc.current.charAt(0).toUpperCase() + svc.current.slice(1)}</span>
+            </div>
+          </div>
+          <div class="bars-wrap">
+            <div class="bars">${bars}</div>
+            <div class="bars-meta"><span>60 days ago</span><span>Today</span></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function groupByDate(incidents) {
+      const groups = {};
+      for (const inc of incidents) {
+        const date = inc.startedAt.slice(0, 10);
+        if (!groups[date]) groups[date] = [];
+        groups[date].push(inc);
+      }
+      return groups;
+    }
+
+    async function load() {
+      const res  = await fetch('/api/status');
+      const data = await res.json();
+
+      // global status
+      const worst = data.reduce((w, s) => {
+        const rank = { outage: 2, degraded: 1, operational: 0, no_data: 0 };
+        return rank[s.current] > rank[w] ? s.current : w;
+      }, 'operational');
+
+      const icon  = document.getElementById('global-icon');
+      const title = document.getElementById('global-title');
+      const sub   = document.getElementById('global-sub');
+
+      if (worst === 'outage') {
+        icon.className  = 'global-icon outage'; icon.textContent = '✕';
+        title.className = 'outage';              title.textContent = 'Service Disruption';
+        sub.textContent = 'One or more services are experiencing an outage.';
+      } else if (worst === 'degraded') {
+        icon.className  = 'global-icon warn'; icon.textContent = '!';
+        title.className = 'warn';             title.textContent = 'Partial Degradation';
+        sub.textContent = 'One or more services are experiencing degraded performance.';
+      } else {
+        icon.className  = 'global-icon ok'; icon.textContent = '✓';
+        title.className = 'ok';             title.textContent = 'All Systems Operational';
+        sub.textContent = 'No incidents reported.';
+      }
+
+      document.getElementById('services').innerHTML  = data.map(renderService).join('');
+
+      // collect all incidents across services
+      const allIncidents = data.flatMap(svc =>
+        svc.incidents.map(inc => ({ ...inc, service: svc.service }))
+      ).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+
+      const incEl = document.getElementById('incidents');
+      if (!allIncidents.length) {
+        incEl.innerHTML = '<div class="no-incidents">No incidents in the last 30 days.</div>';
+      } else {
+        const groups = groupByDate(allIncidents);
+        incEl.innerHTML = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0])).map(([date, incs]) => `
+          <div class="incident-group">
+            <div class="incident-date">${new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            ${incs.map(inc => `
+              <div class="incident-card">
+                <div class="incident-card-header">
+                  <span class="pill ${inc.status}">${inc.status}</span>
+                  <span class="incident-svc">${LABELS[inc.service] ?? inc.service}</span>
+                  ${inc.duration ? `<span class="incident-duration">Duration: ${fmtDuration(inc.duration)}</span>` : ''}
+                </div>
+                <div class="incident-comment">${inc.comment}</div>
+              </div>
+            `).join('')}
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('updated').textContent =
+        'Last updated ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    load();
+    setInterval(load, 60_000);
+  </script>
+</body>
+</html>

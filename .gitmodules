@@ -1,0 +1,7 @@
+[submodule "processor/crates/roe"]
+	path = processor/crates/roe
+	url = https://github.com/Glubus/Rhythm-Open-Exchange
+	branch = rewrite/v0.7.0
+[submodule "processor/crates/metron"]
+	path = processor/crates/metron
+	url = https://github.com/Glubus/Metron

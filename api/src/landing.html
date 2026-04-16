@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>prism.am</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1c1c1c;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.04) 2px,
+        rgba(0,0,0,0.04) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    #bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .content {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .title {
+      font-size: clamp(3rem, 10vw, 7rem);
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      color: #fff;
+      text-shadow:
+        0 0 10px #ff1a1a,
+        0 0 30px #ff1a1a,
+        0 0 60px #ff0000,
+        0 0 100px #ff0000;
+      margin-bottom: 4rem;
+      user-select: none;
+    }
+
+    .scene {
+      width: 340px;
+      height: 340px;
+      perspective: 1800px;
+      margin-bottom: 5rem;
+    }
+
+    .cube {
+      width: 340px;
+      height: 340px;
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    .face {
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      background: rgba(180, 0, 0, 0.07);
+      border: 1.5px solid rgba(220, 40, 40, 0.55);
+    }
+
+    .front  { transform: translateZ(170px); }
+    .back   { transform: rotateY(180deg) translateZ(170px); }
+    .left   { transform: rotateY(-90deg) translateZ(170px); }
+    .right  { transform: rotateY( 90deg) translateZ(170px); }
+    .top    { transform: rotateX( 90deg) translateZ(170px); }
+    .bottom { transform: rotateX(-90deg) translateZ(170px); }
+
+    .btn {
+      display: inline-block;
+      padding: 0.9rem 2.4rem;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(220, 80, 80, 0.85);
+      background: transparent;
+      border: 1.5px solid rgba(200, 60, 60, 0.45);
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow:
+        0 0 6px rgba(255,60,60,0.15),
+        inset 0 0 6px rgba(255,0,0,0.04);
+      transition: all 0.25s ease;
+    }
+
+    .btn:hover {
+      color: #fff;
+      border-color: rgba(220, 60, 60, 0.7);
+      background: rgba(255,26,26,0.07);
+      box-shadow:
+        0 0 12px rgba(255,60,60,0.25),
+        inset 0 0 8px rgba(255,0,0,0.08);
+    }
+
+    .btn:active { transform: scale(0.97); }
+  </style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <div class="content">
+    <div class="title">PRISM</div>
+
+    <div class="scene">
+      <div class="cube" id="cube">
+        <div class="face front"></div>
+        <div class="face back"></div>
+        <div class="face left"></div>
+        <div class="face right"></div>
+        <div class="face top"></div>
+        <div class="face bottom"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:1rem;">
+      <a href="/graphql" class="btn">api docs</a>
+      <a href="/status" class="btn">status</a>
+    </div>
+  </div>
+
+  <script>
+    // ── cube tumble ─────────────────────────────────────────
+    const cube = document.getElementById('cube');
+    let rx = 15, ry = 0, rz = 0;
+    let vx = (Math.random() - 0.5) * 0.3;
+    let vy = (Math.random() - 0.5) * 0.38 + 0.22;
+    let vz = (Math.random() - 0.5) * 0.14;
+
+    function tickCube() {
+      vx += (Math.random() - 0.5) * 0.009;
+      vy += (Math.random() - 0.5) * 0.009;
+      vz += (Math.random() - 0.5) * 0.005;
+      vx = Math.max(-0.55, Math.min(0.55, vx));
+      vy = Math.max(-0.65, Math.min(0.65, vy));
+      vz = Math.max(-0.28, Math.min(0.28, vz));
+      rx += vx; ry += vy; rz += vz;
+      cube.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg)`;
+      requestAnimationFrame(tickCube);
+    }
+    tickCube();
+
+    // ── particle mesh background (grid-accelerated) ─────────
+    const canvas = document.getElementById('bg');
+    const ctx    = canvas.getContext('2d');
+
+    // Fixed logical size — never grows with zoom
+    let W = window.innerWidth, H = window.innerHeight;
+    canvas.width  = W;
+    canvas.height = H;
+
+    window.addEventListener('resize', () => {
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = W; canvas.height = H;
+    });
+
+    const PARTICLE_COUNT = 60;
+    const CONNECT_DIST   = 160;
+    const SPEED          = 0.35;
+    const CELL           = CONNECT_DIST; // grid cell = connect distance
+
+    const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
+      x  : Math.random() * W,
+      y  : Math.random() * H,
+      vx : (Math.random() - 0.5) * SPEED,
+      vy : (Math.random() - 0.5) * SPEED,
+    }));
+
+    function buildGrid() {
+      const cols = Math.ceil(W / CELL);
+      const rows = Math.ceil(H / CELL);
+      const grid = new Array(cols * rows).fill(null).map(() => []);
+      for (const p of particles) {
+        const cx = Math.min(Math.floor(p.x / CELL), cols - 1);
+        const cy = Math.min(Math.floor(p.y / CELL), rows - 1);
+        grid[cy * cols + cx].push(p);
+      }
+      return { grid, cols, rows };
+    }
+
+    function tickBg() {
+      ctx.clearRect(0, 0, W, H);
+
+      for (const p of particles) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) { p.x = 0; p.vx *= -1; }
+        if (p.x > W) { p.x = W; p.vx *= -1; }
+        if (p.y < 0) { p.y = 0; p.vy *= -1; }
+        if (p.y > H) { p.y = H; p.vy *= -1; }
+      }
+
+      const { grid, cols, rows } = buildGrid();
+
+      // edges via grid — only check neighbouring cells
+      const seen = new Set();
+      for (let cy = 0; cy < rows; cy++) {
+        for (let cx = 0; cx < cols; cx++) {
+          const cell = grid[cy * cols + cx];
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = cx + dx, ny = cy + dy;
+              if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+              const ncell = grid[ny * cols + nx];
+              for (const a of cell) {
+                for (const b of ncell) {
+                  if (a === b) continue;
+                  const key = a < b ? `${particles.indexOf(a)}-${particles.indexOf(b)}`
+                                    : `${particles.indexOf(b)}-${particles.indexOf(a)}`;
+                  if (seen.has(key)) continue;
+                  seen.add(key);
+                  const d = Math.hypot(a.x - b.x, a.y - b.y);
+                  if (d > CONNECT_DIST) continue;
+                  const t = 1 - d / CONNECT_DIST;
+                  ctx.beginPath();
+                  ctx.moveTo(a.x, a.y);
+                  ctx.lineTo(b.x, b.y);
+                  ctx.strokeStyle = `rgba(255,40,40,${t * 0.35})`;
+                  ctx.lineWidth   = t * 1.2;
+                  ctx.stroke();
+                }
+              }
+            }
+          }
+        }
+      }
+
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,80,80,0.55)';
+        ctx.fill();
+      }
+
+      requestAnimationFrame(tickBg);
+    }
+    tickBg();
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "osef-me-v2-api",
+  "version": "0.1.0",
+  "exports": "./src/main.ts",
+  "tasks": {
+    "dev": "deno run --watch --allow-net --allow-env --allow-read src/main.ts",
+    "start": "deno run --allow-net --allow-env --allow-read src/main.ts",
+    "seed": "deno run --allow-net --allow-env --allow-read src/fixtures/seed.ts",
+    "seed:status": "deno run --allow-net --allow-env --allow-read src/fixtures/seed_status.ts"
+  },
+  "imports": {
+    "@/": "./src/",
+    "hono": "npm:hono@^4",
+    "hono/logger": "npm:hono/logger",
+    "graphql-yoga": "npm:graphql-yoga@^5",
+    "graphql": "npm:graphql@^16",
+    "@pothos/core": "npm:@pothos/core@^4",
+    "drizzle-orm": "npm:drizzle-orm@^0.40",
+    "drizzle-orm/postgres-js": "npm:drizzle-orm/postgres-js",
+    "postgres": "npm:postgres@^3"
+  }
+}
