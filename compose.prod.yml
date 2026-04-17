@@ -19,10 +19,14 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       PORT: 3000
       NODE_ENV: production
+      PROCESSOR_URL: http://processor:4000
     depends_on:
       - postgres
+      - processor
     ports:
       - "3000:3000"
+    volumes:
+      - rox_data:/data/rox:ro
     restart: unless-stopped
 
   processor:
@@ -30,13 +34,14 @@ services:
       context: .
       dockerfile: build/rust/Dockerfile
     environment:
-      API_URL: http://api:3000
       PROCESSOR_ADDR: 0.0.0.0:4000
+      ROX_PATH: /data/rox
     depends_on:
       - api
-    ports:
-      - "4000:4000"
+    volumes:
+      - rox_data:/data/rox
     restart: unless-stopped
 
 volumes:
   pgdata:
+  rox_data:

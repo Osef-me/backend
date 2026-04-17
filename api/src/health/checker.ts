@@ -7,7 +7,7 @@ type ServiceName = "database" | "api" | "calculator";
 type ServiceStatus = "operational" | "degraded" | "outage";
 
 const INTERVAL_MS = 30_000;
-const CALCULATOR_URL = Deno.env.get("CALCULATOR_URL") ?? "http://localhost:4000";
+const CALCULATOR_URL = Deno.env.get("PROCESSOR_URL") ?? Deno.env.get("CALCULATOR_URL") ?? "http://localhost:4000";
 const API_URL        = Deno.env.get("API_SELF_URL")   ?? "http://localhost:3000";
 
 // ── individual checks ────────────────────────────────────
