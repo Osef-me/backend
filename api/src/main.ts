@@ -6,6 +6,7 @@ import { startHealthChecker } from "./health/checker.ts";
 import { db } from "./db/client.ts";
 import { schema } from "./schema/index.ts";
 import { serviceLog } from "./db/schemas/service_log.ts";
+import { processorRouter } from "./processor/route.ts";
 
 const landing = await Deno.readTextFile(new URL("./landing.html", import.meta.url));
 const statusPage = await Deno.readTextFile(new URL("./status.html", import.meta.url));
@@ -79,6 +80,8 @@ app.get("/api/status", async (c) => {
 
   return c.json(data);
 });
+
+app.route("/api/beatmap", processorRouter);
 
 app.get("/health", (c) => c.json({ ok: true }));
 
