@@ -27,19 +27,56 @@ impl Limiter {
     pub async fn acquire(&self) {
         let rate = self.rate().max(1);
         let interval = Duration::from_secs_f64(60.0 / rate as f64);
-        let mut guard = self.last.lock().await;
+        let mut last_guard = self.last.lock().await;
         let now = Instant::now();
-        if let Some(prev) = *guard {
+        if let Some(prev) = *last_guard {
             let elapsed = now.saturating_duration_since(prev);
-            if elapsed < interval {
-                let wait = interval - elapsed;
-                drop(guard);
+            if let Some(wait) = compute_required_wait(elapsed, interval) {
+                drop(last_guard);
                 sleep(wait).await;
-                let mut guard2 = self.last.lock().await;
-                *guard2 = Some(Instant::now());
+                let mut last_instant_guard = self.last.lock().await;
+                *last_instant_guard = Some(Instant::now());
                 return;
             }
         }
-        *guard = Some(now);
+        *last_guard = Some(now);
+    }
+}
+
+fn compute_required_wait(elapsed: Duration, interval: Duration) -> Option<Duration> {
+    if elapsed < interval {
+        Some(interval - elapsed)
+    } else {
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_wait_when_elapsed_exceeds_interval() {
+        let result = compute_required_wait(Duration::from_millis(600), Duration::from_millis(500));
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn no_wait_when_elapsed_equals_interval() {
+        let result = compute_required_wait(Duration::from_millis(500), Duration::from_millis(500));
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn wait_is_remaining_when_elapsed_is_less() {
+        let result = compute_required_wait(Duration::from_millis(300), Duration::from_millis(500));
+        assert_eq!(result, Some(Duration::from_millis(200)));
+    }
+
+    #[test]
+    fn zero_elapsed_returns_full_interval_as_wait() {
+        let interval = Duration::from_millis(400);
+        let result = compute_required_wait(Duration::ZERO, interval);
+        assert_eq!(result, Some(interval));
     }
 }

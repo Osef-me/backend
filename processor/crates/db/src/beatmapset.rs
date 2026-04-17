@@ -7,7 +7,7 @@ use crate::convert::parse_rfc3339_to_naive;
 pub async fn upsert_beatmapset(pool: &PgPool, beatmapset: &Beatmapset) -> Result<(i32, bool)> {
     let tags = collect_tags(&beatmapset.tags);
     let status_changed_at = parse_rfc3339_to_naive(beatmapset.last_updated.as_deref());
-    let cover_url = beatmapset.covers.as_ref().and_then(|c| c.cover.clone());
+    let cover_url = beatmapset.covers.as_ref().and_then(|c| c.cover.as_deref());
 
     let row: (i32, bool) = sqlx::query_as(
         r#"

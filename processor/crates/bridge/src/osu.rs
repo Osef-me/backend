@@ -108,68 +108,63 @@ impl OsuClient {
         }
     }
 
-    async fn ensure_token(&mut self) -> Result<&str> {
-        let refresh = match self.token_expires {
-            Some(t) => Instant::now() >= t,
-            None => true,
-        };
-        if refresh {
-            let body = serde_json::json!({
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "grant_type": "client_credentials",
-                "scope": "public",
-            });
-            let resp: TokenResp = self
-                .http
-                .post(TOKEN_URL)
-                .json(&body)
-                .send()
-                .await
-                .context("token request")?
-                .error_for_status()
-                .context("token status")?
-                .json()
-                .await
-                .context("token json")?;
+    async fn fetch_new_token(&self) -> Result<TokenResp> {
+        let body = serde_json::json!({
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "grant_type": "client_credentials",
+            "scope": "public",
+        });
+        self.http
+            .post(TOKEN_URL)
+            .json(&body)
+            .send()
+            .await
+            .context("token request")?
+            .error_for_status()
+            .context("token status")?
+            .json()
+            .await
+            .context("token json")
+    }
+
+    async fn ensure_token(&mut self) -> Result<String> {
+        let needs_refresh = self.token_expires.map_or(true, |expiry| Instant::now() >= expiry);
+        if needs_refresh {
+            let resp = self.fetch_new_token().await?;
+            self.token_expires = Some(
+                Instant::now() + Duration::from_secs(resp.expires_in.saturating_sub(60)),
+            );
             self.token = Some(resp.access_token);
-            self.token_expires =
-                Some(Instant::now() + Duration::from_secs(resp.expires_in.saturating_sub(60)));
         }
-        self.token.as_deref().ok_or_else(|| anyhow!("no token"))
+        self.token.clone().ok_or_else(|| anyhow!("no token after refresh"))
     }
 
     pub async fn download_osu_file(&self, beatmap_id: i64) -> Result<Vec<u8>> {
         let url = format!("{OSU_FILE_URL}/{beatmap_id}");
-        let resp = self
-            .http
-            .get(&url)
-            .send()
-            .await
-            .context("osu file send")?;
+        let resp = self.http.get(&url).send().await.context("osu file send")?;
         let status = resp.status();
         if !status.is_success() {
             return Err(anyhow!("osu file {}: {}", status, beatmap_id));
         }
-        let bytes = resp.bytes().await.context("osu file bytes")?;
-        Ok(bytes.to_vec())
+        resp.bytes().await.context("osu file bytes").map(|b| b.to_vec())
     }
 
     pub async fn search_mania(&mut self, cursor: Option<&str>) -> Result<SearchResp> {
-        let token = self.ensure_token().await?.to_string();
+        let token = self.ensure_token().await?;
         let mut req = self
             .http
             .get(SEARCH_URL)
             .bearer_auth(token)
             .query(&[("m", "3"), ("sort", "ranked_desc")]);
-        if let Some(c) = cursor {
-            req = req.query(&[("cursor_string", c)]);
+        if let Some(cursor_string) = cursor {
+            req = req.query(&[("cursor_string", cursor_string)]);
         }
         let resp = req.send().await.context("search send")?;
         let status = resp.status();
         if !status.is_success() {
-            let text = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("search {}: {}", status, text));
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("search {}: {}", status, body));
         }
         resp.json::<SearchResp>().await.context("search json")
     }

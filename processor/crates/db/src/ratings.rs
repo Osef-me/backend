@@ -30,23 +30,25 @@ pub async fn insert_mania_ratio(
     Ok(())
 }
 
-/// Insert one rating row + its mania_skill breakdown.
-/// Skips calc types that share a rating_type already inserted (e.g. osu2016/2018/current → "osu").
+/// Inserts one rating + skill per unique `rating_type`.
+/// Skips calc types that share a `rating_type` already inserted (e.g. osu2016/2018/current → "osu").
 pub async fn insert_unique_ratings(
     tx: &mut Transaction<'_, Postgres>,
     beatmap_pk: i32,
     ratings: &[(CalcType, CalcResult)],
 ) -> Result<()> {
-    let mut inserted_rating_types = std::collections::HashSet::new();
-    for (calc_type, result) in ratings {
-        let rating_type = calc_type.rating_type();
-        if inserted_rating_types.contains(rating_type) {
-            continue;
-        }
-        insert_rating_and_skill(tx, beatmap_pk, rating_type, result).await?;
-        inserted_rating_types.insert(rating_type);
+    for (calc_type, result) in select_first_per_rating_type(ratings) {
+        insert_rating_and_skill(tx, beatmap_pk, calc_type.rating_type(), result).await?;
     }
     Ok(())
+}
+
+fn select_first_per_rating_type(ratings: &[(CalcType, CalcResult)]) -> Vec<&(CalcType, CalcResult)> {
+    let mut seen = std::collections::HashSet::new();
+    ratings
+        .iter()
+        .filter(|(calc_type, _)| seen.insert(calc_type.rating_type()))
+        .collect()
 }
 
 async fn insert_rating_and_skill(
@@ -56,8 +58,7 @@ async fn insert_rating_and_skill(
     result: &CalcResult,
 ) -> Result<()> {
     let rating_pk = insert_beatmap_rating_row(tx, beatmap_pk, rating_type, result.rating).await?;
-    insert_mania_skill_for_rating(tx, rating_pk, &result.mania_skill).await?;
-    Ok(())
+    insert_mania_skill_for_rating(tx, rating_pk, &result.mania_skill).await
 }
 
 async fn insert_beatmap_rating_row(
@@ -113,4 +114,60 @@ async fn insert_mania_skill_for_rating(
     .execute(&mut **tx)
     .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bridge::ManiaSkill;
+
+    fn dummy_result() -> CalcResult {
+        CalcResult {
+            rating: 1.0,
+            mania_skill: ManiaSkill {
+                stream: 0.0,
+                jumpstream: 0.0,
+                handstream: 0.0,
+                stamina: 0.0,
+                jackspeed: 0.0,
+                chordjack: 0.0,
+                technical: 0.0,
+            },
+        }
+    }
+
+    #[test]
+    fn select_first_per_rating_type_deduplicates_osu_variants() {
+        let ratings = vec![
+            (CalcType::Osu2016, dummy_result()),
+            (CalcType::Osu2018, dummy_result()),
+            (CalcType::OsuCurrent, dummy_result()),
+            (CalcType::Quaver2025, dummy_result()),
+            (CalcType::Etterna, dummy_result()),
+        ];
+        let selected = select_first_per_rating_type(&ratings);
+        assert_eq!(selected.len(), 3);
+        assert_eq!(selected[0].0, CalcType::Osu2016, "first osu variant wins");
+        assert_eq!(selected[1].0, CalcType::Quaver2025);
+        assert_eq!(selected[2].0, CalcType::Etterna);
+    }
+
+    #[test]
+    fn select_first_per_rating_type_empty_input() {
+        let selected = select_first_per_rating_type(&[]);
+        assert!(selected.is_empty());
+    }
+
+    #[test]
+    fn select_first_per_rating_type_all_unique() {
+        let ratings = vec![
+            (CalcType::Osu2016, dummy_result()),
+            (CalcType::Quaver2025, dummy_result()),
+            (CalcType::Interlude2025, dummy_result()),
+            (CalcType::SunnyXXY, dummy_result()),
+            (CalcType::Etterna, dummy_result()),
+        ];
+        let selected = select_first_per_rating_type(&ratings);
+        assert_eq!(selected.len(), ratings.len());
+    }
 }

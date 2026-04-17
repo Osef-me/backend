@@ -1,5 +1,4 @@
 mod config;
-mod db;
 mod dump;
 mod limiter;
 mod state;
@@ -11,6 +10,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use bridge::{OsuClient, OsuCredentials, RoxStore};
+use db::{connect, run_migrations};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -20,12 +20,13 @@ async fn main() -> Result<()> {
     let shared = state::new_shared(cfg.initial_rate_per_min);
     let lim = limiter::Limiter::new(cfg.initial_rate_per_min);
 
-    let pool = db::connect(&cfg.database_url).await?;
-    db::run_migrations(&pool).await?;
+    let pool = connect(&cfg.database_url).await?;
+    run_migrations(&pool).await?;
+
 
     let osu_client = OsuClient::new(OsuCredentials {
-        client_id: cfg.osu_client_id.clone(),
-        client_secret: cfg.osu_client_secret.clone(),
+        client_id: cfg.osu_client_id,
+        client_secret: cfg.osu_client_secret,
     });
     let rox_store = Arc::new(RoxStore::new(&cfg.rox_path));
 
