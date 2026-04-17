@@ -40,7 +40,9 @@ impl CalcType {
     /// Maps to the `rating_type` CHECK constraint in the DB schema.
     pub fn rating_type(&self) -> &'static str {
         match self {
-            Self::Osu2016 | Self::Osu2018 | Self::OsuCurrent => "osu",
+            Self::Osu2016       => "osu2016",
+            Self::Osu2018       => "osu2018",
+            Self::OsuCurrent    => "osu_current",
             Self::Quaver2025    => "quaver",
             Self::Interlude2025 => "interlude",
             Self::SunnyXXY      => "sunnyxxy",
@@ -114,20 +116,16 @@ mod tests {
     }
 
     #[test]
-    fn osu_variants_share_rating_type() {
-        assert_eq!(CalcType::Osu2016.rating_type(), "osu");
-        assert_eq!(CalcType::Osu2018.rating_type(), "osu");
-        assert_eq!(CalcType::OsuCurrent.rating_type(), "osu");
+    fn osu_variants_have_distinct_rating_types() {
+        assert_eq!(CalcType::Osu2016.rating_type(), "osu2016");
+        assert_eq!(CalcType::Osu2018.rating_type(), "osu2018");
+        assert_eq!(CalcType::OsuCurrent.rating_type(), "osu_current");
     }
 
     #[test]
-    fn non_osu_variants_have_distinct_rating_types() {
-        let types: Vec<_> = ALL_CALC_TYPES
-            .iter()
-            .filter(|ct| ct.rating_type() != "osu")
-            .map(|ct| ct.rating_type())
-            .collect();
+    fn all_calc_types_have_distinct_rating_types() {
+        let types: Vec<_> = ALL_CALC_TYPES.iter().map(|ct| ct.rating_type()).collect();
         let unique: std::collections::HashSet<_> = types.iter().collect();
-        assert_eq!(types.len(), unique.len(), "non-osu types must have distinct rating_type");
+        assert_eq!(types.len(), unique.len(), "every CalcType must have a distinct rating_type");
     }
 }

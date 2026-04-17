@@ -16,3 +16,6 @@ Thumbs.db
 
 # Seeder output
 seeds/
+
+# Rox chart cache
+processor/data/

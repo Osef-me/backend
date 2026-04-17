@@ -137,7 +137,7 @@ mod tests {
     }
 
     #[test]
-    fn select_first_per_rating_type_deduplicates_osu_variants() {
+    fn select_first_per_rating_type_osu_variants_are_distinct() {
         let ratings = vec![
             (CalcType::Osu2016, dummy_result()),
             (CalcType::Osu2018, dummy_result()),
@@ -146,10 +146,7 @@ mod tests {
             (CalcType::Etterna, dummy_result()),
         ];
         let selected = select_first_per_rating_type(&ratings);
-        assert_eq!(selected.len(), 3);
-        assert_eq!(selected[0].0, CalcType::Osu2016, "first osu variant wins");
-        assert_eq!(selected[1].0, CalcType::Quaver2025);
-        assert_eq!(selected[2].0, CalcType::Etterna);
+        assert_eq!(selected.len(), 5, "all osu variants have distinct rating_type");
     }
 
     #[test]
