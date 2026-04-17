@@ -1,13 +1,14 @@
-use axum::{routing::get, Json, Router};
-use serde_json::{json, Value};
-use tracing_subscriber::EnvFilter;
-
 mod cache;
 mod calc;
 mod error;
 mod rox_store;
 mod service;
 mod types;
+
+use axum::{routing::post, Router};
+use service::AppState;
+use std::sync::Arc;
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() {
@@ -16,14 +17,19 @@ async fn main() {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    let app = Router::new().route("/health", get(health));
+    let rox_path = std::env::var("ROX_PATH").unwrap_or_else(|_| "/data/rox".into());
+    let state = AppState {
+        store: Arc::new(rox_store::RoxStore::new(&rox_path)),
+        cache: cache::new_cache(),
+    };
 
-    let addr = std::env::var("PROCESSOR_ADDR").unwrap_or("0.0.0.0:4000".into());
+    let app = Router::new()
+        .route("/processor.Processor/Calculate", post(service::calculate))
+        .route("/health", axum::routing::get(|| async { axum::Json(serde_json::json!({ "ok": true })) }))
+        .with_state(state);
+
+    let addr = std::env::var("PROCESSOR_ADDR").unwrap_or_else(|_| "0.0.0.0:4000".into());
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     tracing::info!("processor listening on {}", addr);
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn health() -> Json<Value> {
-    Json(json!({ "ok": true }))
 }
