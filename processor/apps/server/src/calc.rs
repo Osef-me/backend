@@ -165,7 +165,9 @@ mod tests {
     use rox_formats::auto::auto_decode;
 
     fn test_chart() -> RoxChart {
-        auto_decode("../../crates/metron/assets/test.osu").expect("decode test.osu")
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../crates/metron/assets/test.osu");
+        auto_decode(path).expect("decode test.osu")
     }
 
     #[test]

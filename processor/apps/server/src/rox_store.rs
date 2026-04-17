@@ -51,8 +51,9 @@ mod tests {
     fn test_save_and_load_roundtrip() {
         let dir = tempfile::tempdir().unwrap();
         let store = RoxStore::new(dir.path());
-        let chart = auto_decode("../../crates/metron/assets/test.osu")
-            .expect("decode test.osu");
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../crates/metron/assets/test.osu");
+        let chart = auto_decode(path).expect("decode test.osu");
 
         store.save_if_absent("abc123", &chart).expect("save");
         let loaded = store.load("abc123").expect("load").expect("should exist");

@@ -36,8 +36,6 @@ services:
     environment:
       PROCESSOR_ADDR: 0.0.0.0:4000
       ROX_PATH: /data/rox
-    depends_on:
-      - api
     volumes:
       - rox_data:/data/rox
     restart: unless-stopped
