@@ -29,7 +29,7 @@ pub async fn insert_beatmap_row(
            main_pattern, drain_time, total_time, bpm, cs, ar, od, hp,
            mode, status)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,3,$18)
-        ON CONFLICT (osu_hash) DO NOTHING
+        ON CONFLICT DO NOTHING
         RETURNING id
         "#,
     )

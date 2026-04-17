@@ -37,7 +37,7 @@ const ManiaRatioFilterInput = builder.inputType("ManiaRatioFilter", {
 // Rating filter — type is required so we know which rating system to join
 const RatingFilterInput = builder.inputType("RatingFilter", {
   fields: (t) => ({
-    type: t.string({ required: true }), // e.g. "etterna", "osu", "sunnyxxy"
+    type: t.string({ required: true }), // e.g. "osu2016", "osu2018", "osu_current", "etterna", "quaver", "interlude", "sunnyxxy"
     value: t.field({ type: FloatFilterInput, required: false }),
     skill: t.field({ type: ManiaSkillFilterInput, required: false }),
   }),

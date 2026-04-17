@@ -10,6 +10,16 @@ import type { CalcType, RateResult } from "./types.ts";
 
 export const processorRouter = new Hono();
 
+const CALC_TYPE_TO_RATING_TYPE: Record<CalcType, string> = {
+  osu2016: "osu2016",
+  osu2018: "osu2018",
+  osu_current: "osu_current",
+  quaver2025: "quaver",
+  interlude2025: "interlude",
+  sunnyxxy: "sunnyxxy",
+  etterna: "etterna",
+};
+
 const VALID_CALC_TYPES: CalcType[] = [
   "osu2016",
   "osu2018",
@@ -78,7 +88,7 @@ async function persistRating(
     .values({
       beatmapId,
       rating: String(result.rating),
-      ratingType: calcType,
+      ratingType: CALC_TYPE_TO_RATING_TYPE[calcType],
     })
     .onConflictDoUpdate({
       target: [beatmapRating.beatmapId, beatmapRating.ratingType],

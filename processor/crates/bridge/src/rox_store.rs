@@ -27,14 +27,19 @@ impl RoxStore {
     }
 
     pub fn save_if_absent(&self, hash: &str, chart: &RoxChart) -> Result<(), String> {
+        self.save_if_absent_with_size(hash, chart).map(|_| ())
+    }
+
+    pub fn save_if_absent_with_size(&self, hash: &str, chart: &RoxChart) -> Result<Option<u64>, String> {
         let path = self.path(hash);
         if path.exists() {
-            return Ok(());
+            return Ok(None);
         }
         std::fs::create_dir_all(&self.base).map_err(|e| e.to_string())?;
         let bytes = RoxNativeCodec::encode(chart).map_err(|e| e.to_string())?;
+        let size = bytes.len() as u64;
         std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
-        Ok(())
+        Ok(Some(size))
     }
 
     fn path(&self, hash: &str) -> PathBuf {

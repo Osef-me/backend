@@ -7,7 +7,8 @@ use db::{enqueue_pending_beatmap, insert_full_beatmap, upsert_beatmapset, Comput
 use tokio::time::sleep;
 
 use crate::limiter::Limiter;
-use crate::state::Shared;
+use crate::retry::{compute_backoff, is_transient};
+use crate::state::{LogType, Shared};
 
 pub async fn run(
     pool: PgPool,
@@ -28,14 +29,26 @@ pub async fn run(
 
         limiter.acquire().await;
 
-        let resp = match osu.search_mania(cursor.as_deref()).await {
-            Ok(r) => r,
-            Err(e) => {
-                record_error(&state, format!("search error: {e}")).await;
-                sleep(Duration::from_secs(2)).await;
-                continue;
+        let resp = loop {
+            match osu.search_mania(cursor.as_deref()).await {
+                Ok(r) => break r,
+                Err(e) => {
+                    let msg = format!("search error: {e}");
+                    if is_transient(&msg) {
+                        let mut s = state.write().await;
+                        s.retry_attempt += 1;
+                        let attempt = s.retry_attempt;
+                        s.log(LogType::Retry, format!("[attempt {attempt}] {msg}"));
+                        drop(s);
+                        sleep(compute_backoff(attempt)).await;
+                    } else {
+                        record_error(&state, LogType::Network, msg).await;
+                        sleep(Duration::from_secs(2)).await;
+                    }
+                }
             }
         };
+        state.write().await.retry_attempt = 0;
 
         update_pagination_state(&state, &resp).await;
 
@@ -51,7 +64,7 @@ pub async fn run(
         if cursor.is_none() {
             let mut stats_guard = state.write().await;
             stats_guard.done = true;
-            stats_guard.message = Some("finished (no more cursor)".into());
+            stats_guard.log(LogType::Info, "finished (no more cursor)".into());
             break;
         }
     }
@@ -86,7 +99,7 @@ async fn process_beatmapset(
             }
         }
         Err(e) => {
-            record_error(state, format!("upsert set {}: {e}", set.id)).await;
+            record_error(state, LogType::Db, format!("upsert set {}: {e}", set.id)).await;
         }
     }
 }
@@ -103,7 +116,7 @@ async fn process_mania_beatmap(
     if state.read().await.shutdown {
         return;
     }
-    if state.read().await.paused {
+    while state.read().await.paused {
         sleep(Duration::from_millis(200)).await;
     }
     process_beatmap(pool, osu, limiter, rox_store, state, set_pk, beatmap).await;
@@ -129,7 +142,7 @@ async fn process_beatmap(
     let chart = match download_and_decode_chart(osu, beatmap).await {
         Ok(chart) => chart,
         Err(message) => {
-            record_error(state, message).await;
+            record_error(state, LogType::Network, message).await;
             return;
         }
     };
@@ -139,18 +152,20 @@ async fn process_beatmap(
     let rox_is_new = match save_chart_to_rox_store(rox_store, &normalized_hash, &chart) {
         Ok(is_new) => is_new,
         Err(message) => {
-            record_error(state, message).await;
+            record_error(state, LogType::Db, message).await;
             return;
         }
     };
-    if rox_is_new {
-        state.write().await.rox_saved += 1;
+    if let Some(bytes) = rox_is_new {
+        let mut s = state.write().await;
+        s.rox_saved += 1;
+        s.rox_bytes += bytes;
     }
 
     let (proportions, ratings) = match calculate_all(&chart, 100) {
         Ok(result) => result,
         Err(message) => {
-            record_error(state, format!("calc {}: {message}", beatmap.id)).await;
+            record_error(state, LogType::Calc, format!("calc {}: {message}", beatmap.id)).await;
             return;
         }
     };
@@ -163,12 +178,17 @@ async fn process_beatmap(
             let mut stats_guard = state.write().await;
             stats_guard.maps_inserted += 1;
             stats_guard.ratings_inserted += ratings_count;
+            if stats_guard.maps_inserted % 100 == 0 {
+                if let Ok(size) = query_db_size(pool).await {
+                    stats_guard.db_bytes = size;
+                }
+            }
         }
         Ok(false) => {
             state.write().await.skipped += 1;
         }
         Err(e) => {
-            record_error(state, format!("insert map {}: {e}", beatmap.id)).await;
+            record_error(state, LogType::Db, format!("insert map {}: {e}", beatmap.id)).await;
         }
     }
 }
@@ -189,12 +209,10 @@ fn save_chart_to_rox_store(
     rox_store: &RoxStore,
     normalized_hash: &str,
     chart: &RoxChart,
-) -> Result<bool, String> {
-    let is_new = !rox_store.contains(normalized_hash);
+) -> Result<Option<u64>, String> {
     rox_store
-        .save_if_absent(normalized_hash, chart)
-        .map_err(|e| format!("rox save: {e}"))?;
-    Ok(is_new)
+        .save_if_absent_with_size(normalized_hash, chart)
+        .map_err(|e| format!("rox save: {e}"))
 }
 
 fn count_unique_rating_types(ratings: &[(CalcType, CalcResult)]) -> u64 {
@@ -205,8 +223,13 @@ fn count_unique_rating_types(ratings: &[(CalcType, CalcResult)]) -> u64 {
         .len() as u64
 }
 
-async fn record_error(state: &Shared, message: String) {
+async fn record_error(state: &Shared, log_type: LogType, message: String) {
     let mut stats_guard = state.write().await;
     stats_guard.errors += 1;
-    stats_guard.message = Some(message);
+    stats_guard.log(log_type, message);
 }
+
+async fn query_db_size(pool: &PgPool) -> Result<u64, String> {
+    db::query_db_size(pool).await.map_err(|e| e.to_string())
+}
+

@@ -1,6 +1,25 @@
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
+
+const MAX_LOG_ENTRIES: usize = 100;
+
+#[derive(Clone, Debug)]
+pub enum LogType {
+    Network,
+    Db,
+    Calc,
+    Info,
+    Retry,
+}
+
+#[derive(Clone, Debug)]
+pub struct LogEntry {
+    pub timestamp: Instant,
+    pub log_type: LogType,
+    pub message: String,
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct Stats {
@@ -19,7 +38,23 @@ pub struct Stats {
     pub shutdown: bool,
     pub started_at: Option<Instant>,
     pub done: bool,
-    pub message: Option<String>,
+    pub logs: VecDeque<LogEntry>,
+    pub retry_attempt: u32,
+    pub rox_bytes: u64,
+    pub db_bytes: u64,
+}
+
+impl Stats {
+    pub fn log(&mut self, log_type: LogType, message: String) {
+        if self.logs.len() >= MAX_LOG_ENTRIES {
+            self.logs.pop_front();
+        }
+        self.logs.push_back(LogEntry {
+            timestamp: Instant::now(),
+            log_type,
+            message,
+        });
+    }
 }
 
 pub type Shared = Arc<RwLock<Stats>>;
@@ -28,6 +63,7 @@ pub fn new_shared(rate: u32) -> Shared {
     Arc::new(RwLock::new(Stats {
         rate_per_min: rate,
         started_at: Some(Instant::now()),
+        logs: VecDeque::new(),
         ..Default::default()
     }))
 }

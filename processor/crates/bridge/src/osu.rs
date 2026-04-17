@@ -156,7 +156,7 @@ impl OsuClient {
             .http
             .get(SEARCH_URL)
             .bearer_auth(token)
-            .query(&[("m", "3"), ("sort", "ranked_desc")]);
+            .query(&[("m", "3"), ("s", "any"), ("nsfw", "true"), ("key", "4")]);
         if let Some(cursor_string) = cursor {
             req = req.query(&[("cursor_string", cursor_string)]);
         }

@@ -35,7 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_beatmapset_creator_trgm ON beatmapset USING GIN (
 -- ============================================================
 -- beatmap (canonical — unique by notes_hash)
 -- notes_hash: normalized at 100 bpm for dupe detection
--- ============================================================
+-- ==================https://media.discordapp.net/attachments/1457874634216308882/1494813398880354315/image.png?ex=69e3f8f6&is=69e2a776&hm=88abbaa8351114e865a99d36c93961fe7be431aef3b59ab5b2de2d23aac4c8e4&=&format=webp&quality=lossless&width=1170&height=544==========================================
 CREATE TABLE IF NOT EXISTS beatmap (
     id             INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     osu_id         INTEGER UNIQUE,

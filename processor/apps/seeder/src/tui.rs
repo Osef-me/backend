@@ -15,7 +15,7 @@ use ratatui::Terminal;
 
 use crate::config::{RATE_MAX, RATE_MIN};
 use crate::limiter::Limiter;
-use crate::state::{Shared, Stats};
+use crate::state::{LogEntry, LogType, Shared, Stats};
 
 pub async fn run(state: Shared, limiter: Arc<Limiter>) -> Result<()> {
     enable_raw_mode()?;
@@ -67,7 +67,7 @@ async fn handle_key_event(key: KeyEvent, state: &Shared, limiter: &Arc<Limiter>)
         KeyCode::Char('q') | KeyCode::Esc => {
             let mut stats_guard = state.write().await;
             stats_guard.shutdown = true;
-            stats_guard.message = Some("shutdown requested".into());
+            stats_guard.log(LogType::Info, "shutdown requested".into());
         }
         KeyCode::Char('+') | KeyCode::Char('=') => {
             let new_rate = (limiter.rate() + 10).min(RATE_MAX);
@@ -87,7 +87,7 @@ async fn handle_key_event(key: KeyEvent, state: &Shared, limiter: &Arc<Limiter>)
             if is_ctrl_c {
                 let mut stats_guard = state.write().await;
                 stats_guard.shutdown = true;
-                stats_guard.message = Some("ctrl-c".into());
+                stats_guard.log(LogType::Info, "ctrl-c".into());
             }
         }
     }
@@ -97,12 +97,13 @@ fn draw(f: &mut ratatui::Frame, stats: &Stats) {
     let chunks = build_layout(f.area());
     let elapsed = stats.started_at.map(|t| t.elapsed()).unwrap_or_default();
     let ratio = compute_progress_ratio(stats.sets_inserted, stats.total_known);
-    let eta_text = compute_eta_text(stats.sets_inserted, stats.total_known, stats.rate_per_min);
+    let eta_text = compute_eta_text(stats.sets_inserted, stats.total_known, elapsed);
+    let throughput = compute_throughput(stats.sets_inserted, elapsed);
 
     render_title_bar(f, chunks[0], stats);
     render_progress_gauge(f, chunks[1], stats, ratio);
-    render_stats_panel(f, chunks[2], stats, elapsed, &eta_text);
-    render_last_panel(f, chunks[3], stats);
+    render_stats_panel(f, chunks[2], stats, elapsed, &eta_text, throughput);
+    render_log_panel(f, chunks[3], stats);
     render_help_bar(f, chunks[4]);
 }
 
@@ -126,15 +127,27 @@ fn compute_progress_ratio(sets_inserted: u64, total_known: Option<u64>) -> f64 {
     }
 }
 
-fn compute_eta_text(sets_inserted: u64, total_known: Option<u64>, rate_per_min: u32) -> String {
+fn compute_eta_text(sets_inserted: u64, total_known: Option<u64>, elapsed: Duration) -> String {
     match total_known {
-        Some(total) if total > sets_inserted && rate_per_min > 0 => {
+        Some(total) if total > sets_inserted && elapsed.as_secs() > 5 => {
             let remaining = total - sets_inserted;
-            let per_sec = rate_per_min as f64 / 60.0;
-            let secs = remaining as f64 / per_sec.max(0.0001);
-            fmt_dur(Duration::from_secs_f64(secs))
+            let sets_per_sec = sets_inserted as f64 / elapsed.as_secs_f64();
+            if sets_per_sec > 0.0001 {
+                let secs = remaining as f64 / sets_per_sec;
+                fmt_dur(Duration::from_secs_f64(secs))
+            } else {
+                "--".into()
+            }
         }
         _ => "--".into(),
+    }
+}
+
+fn compute_throughput(sets_inserted: u64, elapsed: Duration) -> f64 {
+    if elapsed.as_secs() > 0 {
+        sets_inserted as f64 / elapsed.as_secs_f64() * 60.0
+    } else {
+        0.0
     }
 }
 
@@ -163,31 +176,99 @@ fn render_progress_gauge(f: &mut ratatui::Frame, area: Rect, stats: &Stats, rati
     f.render_widget(gauge, area);
 }
 
-fn render_stats_panel(f: &mut ratatui::Frame, area: Rect, stats: &Stats, elapsed: Duration, eta_text: &str) {
+fn render_stats_panel(f: &mut ratatui::Frame, area: Rect, stats: &Stats, elapsed: Duration, eta_text: &str, throughput: f64) {
+    let disk_text = format_disk_usage(stats);
     let lines = vec![
         Line::from(format!("elapsed:  {}", fmt_dur(elapsed))),
         Line::from(format!("eta:      {eta_text}")),
-        Line::from(format!("rate:     {} req/min (min {} / max {})", stats.rate_per_min, RATE_MIN, RATE_MAX)),
+        Line::from(format!("speed:    {:.1} sets/min (limit: {} req/min)", throughput, stats.rate_per_min)),
         Line::from(format!("pages:    {}", stats.pages_fetched)),
         Line::from(format!("sets:     {}", stats.sets_inserted)),
         Line::from(format!("maps:     {}  (skipped {})", stats.maps_inserted, stats.skipped)),
         Line::from(format!("ratings:  {}", stats.ratings_inserted)),
-        Line::from(format!(".rox:     {}", stats.rox_saved)),
+        Line::from(format!("disk:     {}", disk_text)),
         Line::from(format!("errors:   {}", stats.errors)),
     ];
     let widget = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title("stats"));
     f.render_widget(widget, area);
 }
 
-fn render_last_panel(f: &mut ratatui::Frame, area: Rect, stats: &Stats) {
-    let widget = Paragraph::new(vec![
-        Line::from(format!("last:   {}", stats.last_title.as_deref().unwrap_or("--"))),
-        Line::from(format!("cursor: {}", stats.last_cursor.as_deref().unwrap_or("--"))),
-        Line::from(format!("msg:    {}", stats.message.as_deref().unwrap_or(""))),
-    ])
-    .wrap(Wrap { trim: true })
-    .block(Block::default().borders(Borders::ALL).title("last"));
+fn format_disk_usage(stats: &Stats) -> String {
+    let rox_text = format_size_with_projection(stats.rox_bytes, stats.rox_saved, stats.total_known, "rox");
+    let db_text = format_size_with_projection(stats.db_bytes, stats.maps_inserted, stats.total_known, "db");
+    format!("{} | {}", rox_text, db_text)
+}
+
+fn format_size_with_projection(bytes: u64, count: u64, total: Option<u64>, label: &str) -> String {
+    if bytes == 0 || count == 0 {
+        return format!("{}: --", label);
+    }
+    let current_mb = bytes as f64 / (1024.0 * 1024.0);
+    let avg_per_item = bytes as f64 / count as f64;
+
+    match total {
+        Some(t) if t > 0 => {
+            let projected_bytes = avg_per_item * t as f64;
+            let projected_gb = projected_bytes / (1024.0 * 1024.0 * 1024.0);
+            format!("{}: {:.0}MB→{:.1}GB", label, current_mb, projected_gb)
+        }
+        _ => format!("{}: {:.0}MB", label, current_mb),
+    }
+}
+
+fn render_log_panel(f: &mut ratatui::Frame, area: Rect, stats: &Stats) {
+    let start_time = stats.started_at.unwrap_or_else(std::time::Instant::now);
+    let lines: Vec<Line> = stats
+        .logs
+        .iter()
+        .rev()
+        .take((area.height.saturating_sub(2)) as usize)
+        .map(|entry| format_log_entry(entry, start_time))
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
+
+    let title = format!(
+        "logs ({}) — last: {}",
+        stats.logs.len(),
+        stats.last_title.as_deref().unwrap_or("--")
+    );
+    let widget = Paragraph::new(lines)
+        .wrap(Wrap { trim: true })
+        .block(Block::default().borders(Borders::ALL).title(title));
     f.render_widget(widget, area);
+}
+
+fn format_log_entry(entry: &LogEntry, start_time: std::time::Instant) -> Line<'static> {
+    let elapsed = entry.timestamp.duration_since(start_time);
+    let time_str = format!(
+        "{:02}:{:02}:{:02}",
+        elapsed.as_secs() / 3600,
+        (elapsed.as_secs() % 3600) / 60,
+        elapsed.as_secs() % 60
+    );
+    let type_str = match entry.log_type {
+        LogType::Network => "NET",
+        LogType::Db => "DB ",
+        LogType::Calc => "CAL",
+        LogType::Info => "INF",
+        LogType::Retry => "RTY",
+    };
+    let type_color = match entry.log_type {
+        LogType::Network => Color::Blue,
+        LogType::Db => Color::Magenta,
+        LogType::Calc => Color::Yellow,
+        LogType::Info => Color::Green,
+        LogType::Retry => Color::Red,
+    };
+    Line::from(vec![
+        Span::styled(format!("[{time_str}]"), Style::default().fg(Color::DarkGray)),
+        Span::raw(" "),
+        Span::styled(format!("[{type_str}]"), Style::default().fg(type_color)),
+        Span::raw(" "),
+        Span::raw(entry.message.clone()),
+    ])
 }
 
 fn render_help_bar(f: &mut ratatui::Frame, area: Rect) {
@@ -251,23 +332,30 @@ mod tests {
 
     #[test]
     fn compute_eta_text_returns_dash_when_no_total() {
-        assert_eq!(compute_eta_text(0, None, 60), "--");
+        assert_eq!(compute_eta_text(0, None, Duration::from_secs(60)), "--");
     }
 
     #[test]
     fn compute_eta_text_returns_dash_when_done() {
-        assert_eq!(compute_eta_text(100, Some(100), 60), "--");
+        assert_eq!(compute_eta_text(100, Some(100), Duration::from_secs(60)), "--");
     }
 
     #[test]
-    fn compute_eta_text_returns_dash_when_rate_zero() {
-        assert_eq!(compute_eta_text(0, Some(100), 0), "--");
+    fn compute_eta_text_returns_dash_when_elapsed_too_short() {
+        assert_eq!(compute_eta_text(0, Some(100), Duration::from_secs(3)), "--");
     }
 
     #[test]
     fn compute_eta_text_returns_duration_string() {
-        // 60 remaining at 60/min = 60 seconds
-        let eta = compute_eta_text(0, Some(60), 60);
-        assert_eq!(eta, "01m00s");
+        // 30 done in 30s = 1/s, 30 remaining = 30s
+        let eta = compute_eta_text(30, Some(60), Duration::from_secs(30));
+        assert_eq!(eta, "00m30s");
+    }
+
+    #[test]
+    fn compute_throughput_returns_sets_per_minute() {
+        // 60 sets in 60 seconds = 60 sets/min
+        let tp = compute_throughput(60, Duration::from_secs(60));
+        assert!((tp - 60.0).abs() < 0.1);
     }
 }
