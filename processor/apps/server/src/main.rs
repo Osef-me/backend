@@ -2,6 +2,9 @@ use axum::{routing::get, Json, Router};
 use serde_json::{json, Value};
 use tracing_subscriber::EnvFilter;
 
+mod error;
+mod types;
+
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
