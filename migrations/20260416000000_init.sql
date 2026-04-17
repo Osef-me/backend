@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 -- ============================================================
 -- beatmapset
 -- ============================================================
-CREATE TABLE beatmapset (
+CREATE TABLE IF NOT EXISTS beatmapset (
     id                    INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     osu_id                INTEGER UNIQUE,
     artist                VARCHAR(255) NOT NULL,
@@ -28,15 +28,15 @@ CREATE TABLE beatmapset (
     updated_at            TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_beatmapset_artist_trgm  ON beatmapset USING GIN (artist  gin_trgm_ops);
-CREATE INDEX idx_beatmapset_title_trgm   ON beatmapset USING GIN (title   gin_trgm_ops);
-CREATE INDEX idx_beatmapset_creator_trgm ON beatmapset USING GIN (creator gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_beatmapset_artist_trgm  ON beatmapset USING GIN (artist  gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_beatmapset_title_trgm   ON beatmapset USING GIN (title   gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_beatmapset_creator_trgm ON beatmapset USING GIN (creator gin_trgm_ops);
 
 -- ============================================================
 -- beatmap (canonical — unique by notes_hash)
 -- notes_hash: normalized at 100 bpm for dupe detection
 -- ============================================================
-CREATE TABLE beatmap (
+CREATE TABLE IF NOT EXISTS beatmap (
     id             INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     osu_id         INTEGER UNIQUE,
     beatmapset_id  INTEGER REFERENCES beatmapset(id) ON DELETE CASCADE,
@@ -63,22 +63,22 @@ CREATE TABLE beatmap (
     CONSTRAINT valid_status CHECK (status IN ('pending', 'ranked', 'qualified', 'loved', 'graveyard'))
 );
 
-CREATE INDEX idx_beatmap_beatmapset_id    ON beatmap(beatmapset_id);
-CREATE INDEX idx_beatmap_mode             ON beatmap(mode);
-CREATE INDEX idx_beatmap_status           ON beatmap(status);
-CREATE INDEX idx_beatmap_bpm              ON beatmap(bpm);
-CREATE INDEX idx_beatmap_total_time       ON beatmap(total_time);
-CREATE INDEX idx_beatmap_drain_time       ON beatmap(drain_time);
-CREATE INDEX idx_beatmap_od               ON beatmap(od);
-CREATE INDEX idx_beatmap_cs               ON beatmap(cs);
-CREATE INDEX idx_beatmap_main_pattern_gin ON beatmap USING GIN (main_pattern);
+CREATE INDEX IF NOT EXISTS idx_beatmap_beatmapset_id    ON beatmap(beatmapset_id);
+CREATE INDEX IF NOT EXISTS idx_beatmap_mode             ON beatmap(mode);
+CREATE INDEX IF NOT EXISTS idx_beatmap_status           ON beatmap(status);
+CREATE INDEX IF NOT EXISTS idx_beatmap_bpm              ON beatmap(bpm);
+CREATE INDEX IF NOT EXISTS idx_beatmap_total_time       ON beatmap(total_time);
+CREATE INDEX IF NOT EXISTS idx_beatmap_drain_time       ON beatmap(drain_time);
+CREATE INDEX IF NOT EXISTS idx_beatmap_od               ON beatmap(od);
+CREATE INDEX IF NOT EXISTS idx_beatmap_cs               ON beatmap(cs);
+CREATE INDEX IF NOT EXISTS idx_beatmap_main_pattern_gin ON beatmap USING GIN (main_pattern);
 
 -- ============================================================
 -- beatmap_duplicate
 -- Lean mapping: osu_hash → canonical beatmap.
 -- All display info lives on the canonical — no data duplication.
 -- ============================================================
-CREATE TABLE beatmap_duplicate (
+CREATE TABLE IF NOT EXISTS beatmap_duplicate (
     id                   INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     canonical_beatmap_id INTEGER NOT NULL REFERENCES beatmap(id) ON DELETE CASCADE,
     osu_id               INTEGER UNIQUE,
@@ -87,13 +87,13 @@ CREATE TABLE beatmap_duplicate (
     created_at           TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_beatmap_dup_canonical  ON beatmap_duplicate(canonical_beatmap_id);
-CREATE INDEX idx_beatmap_dup_notes_hash ON beatmap_duplicate(notes_hash);
+CREATE INDEX IF NOT EXISTS idx_beatmap_dup_canonical  ON beatmap_duplicate(canonical_beatmap_id);
+CREATE INDEX IF NOT EXISTS idx_beatmap_dup_notes_hash ON beatmap_duplicate(notes_hash);
 
 -- ============================================================
 -- beatmap_rating (one row per beatmap per rating system)
 -- ============================================================
-CREATE TABLE beatmap_rating (
+CREATE TABLE IF NOT EXISTS beatmap_rating (
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     beatmap_id  INTEGER NOT NULL REFERENCES beatmap(id) ON DELETE CASCADE,
     rating      DECIMAL(8,4) NOT NULL CHECK (rating >= 0),
@@ -104,15 +104,15 @@ CREATE TABLE beatmap_rating (
     CONSTRAINT valid_rating_type CHECK (rating_type IN ('osu', 'etterna', 'quaver', 'malody', 'interlude', 'sunnyxxy'))
 );
 
-CREATE INDEX idx_beatmap_rating_beatmap_id  ON beatmap_rating(beatmap_id);
-CREATE INDEX idx_beatmap_rating_type_rating ON beatmap_rating(rating_type, rating);
+CREATE INDEX IF NOT EXISTS idx_beatmap_rating_beatmap_id  ON beatmap_rating(beatmap_id);
+CREATE INDEX IF NOT EXISTS idx_beatmap_rating_type_rating ON beatmap_rating(rating_type, rating);
 
 -- ============================================================
 -- beatmap_mania_ratio
 -- Raw skill ratios (0-1) — property of the map itself, rating-type agnostic.
 -- 1:1 with beatmap via UNIQUE(beatmap_id).
 -- ============================================================
-CREATE TABLE beatmap_mania_ratio (
+CREATE TABLE IF NOT EXISTS beatmap_mania_ratio (
     id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     beatmap_id INTEGER NOT NULL UNIQUE REFERENCES beatmap(id) ON DELETE CASCADE,
     stream     DECIMAL(5,4),
@@ -131,13 +131,13 @@ CREATE TABLE beatmap_mania_ratio (
     CONSTRAINT ratio_technical  CHECK (technical  IS NULL OR (technical  >= 0 AND technical  <= 1))
 );
 
-CREATE INDEX idx_mania_ratio_stream     ON beatmap_mania_ratio(stream);
-CREATE INDEX idx_mania_ratio_jumpstream ON beatmap_mania_ratio(jumpstream);
-CREATE INDEX idx_mania_ratio_handstream ON beatmap_mania_ratio(handstream);
-CREATE INDEX idx_mania_ratio_stamina    ON beatmap_mania_ratio(stamina);
-CREATE INDEX idx_mania_ratio_jackspeed  ON beatmap_mania_ratio(jackspeed);
-CREATE INDEX idx_mania_ratio_chordjack  ON beatmap_mania_ratio(chordjack);
-CREATE INDEX idx_mania_ratio_technical  ON beatmap_mania_ratio(technical);
+CREATE INDEX IF NOT EXISTS idx_mania_ratio_stream     ON beatmap_mania_ratio(stream);
+CREATE INDEX IF NOT EXISTS idx_mania_ratio_jumpstream ON beatmap_mania_ratio(jumpstream);
+CREATE INDEX IF NOT EXISTS idx_mania_ratio_handstream ON beatmap_mania_ratio(handstream);
+CREATE INDEX IF NOT EXISTS idx_mania_ratio_stamina    ON beatmap_mania_ratio(stamina);
+CREATE INDEX IF NOT EXISTS idx_mania_ratio_jackspeed  ON beatmap_mania_ratio(jackspeed);
+CREATE INDEX IF NOT EXISTS idx_mania_ratio_chordjack  ON beatmap_mania_ratio(chordjack);
+CREATE INDEX IF NOT EXISTS idx_mania_ratio_technical  ON beatmap_mania_ratio(technical);
 
 -- ============================================================
 -- beatmap_mania_skill
@@ -145,7 +145,7 @@ CREATE INDEX idx_mania_ratio_technical  ON beatmap_mania_ratio(technical);
 -- App multiplies before insert — queries are direct range scans, no join math.
 -- 1:1 with beatmap_rating via UNIQUE(rating_id).
 -- ============================================================
-CREATE TABLE beatmap_mania_skill (
+CREATE TABLE IF NOT EXISTS beatmap_mania_skill (
     id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     rating_id  INTEGER NOT NULL UNIQUE REFERENCES beatmap_rating(id) ON DELETE CASCADE,
     stream     DECIMAL(8,4),
@@ -164,34 +164,34 @@ CREATE TABLE beatmap_mania_skill (
     CONSTRAINT valid_technical  CHECK (technical  IS NULL OR technical  >= 0)
 );
 
-CREATE INDEX idx_mania_skill_stream     ON beatmap_mania_skill(stream);
-CREATE INDEX idx_mania_skill_jumpstream ON beatmap_mania_skill(jumpstream);
-CREATE INDEX idx_mania_skill_handstream ON beatmap_mania_skill(handstream);
-CREATE INDEX idx_mania_skill_stamina    ON beatmap_mania_skill(stamina);
-CREATE INDEX idx_mania_skill_jackspeed  ON beatmap_mania_skill(jackspeed);
-CREATE INDEX idx_mania_skill_chordjack  ON beatmap_mania_skill(chordjack);
-CREATE INDEX idx_mania_skill_technical  ON beatmap_mania_skill(technical);
+CREATE INDEX IF NOT EXISTS idx_mania_skill_stream     ON beatmap_mania_skill(stream);
+CREATE INDEX IF NOT EXISTS idx_mania_skill_jumpstream ON beatmap_mania_skill(jumpstream);
+CREATE INDEX IF NOT EXISTS idx_mania_skill_handstream ON beatmap_mania_skill(handstream);
+CREATE INDEX IF NOT EXISTS idx_mania_skill_stamina    ON beatmap_mania_skill(stamina);
+CREATE INDEX IF NOT EXISTS idx_mania_skill_jackspeed  ON beatmap_mania_skill(jackspeed);
+CREATE INDEX IF NOT EXISTS idx_mania_skill_chordjack  ON beatmap_mania_skill(chordjack);
+CREATE INDEX IF NOT EXISTS idx_mania_skill_technical  ON beatmap_mania_skill(technical);
 
 -- ============================================================
 -- pending_beatmap (discovery queue, pre-processing)
 -- ============================================================
-CREATE TABLE pending_beatmap (
+CREATE TABLE IF NOT EXISTS pending_beatmap (
     id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     osu_hash   TEXT NOT NULL UNIQUE,
     osu_id     INTEGER,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_pending_beatmap_created_at ON pending_beatmap(created_at);
+CREATE INDEX IF NOT EXISTS idx_pending_beatmap_created_at ON pending_beatmap(created_at);
 
 -- ============================================================
 -- failed_query (tracks hashes that failed during discovery)
 -- ============================================================
-CREATE TABLE failed_query (
+CREATE TABLE IF NOT EXISTS failed_query (
     id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     hash       TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_failed_query_hash       ON failed_query(hash);
-CREATE INDEX idx_failed_query_created_at ON failed_query(created_at);
+CREATE INDEX IF NOT EXISTS idx_failed_query_hash       ON failed_query(hash);
+CREATE INDEX IF NOT EXISTS idx_failed_query_created_at ON failed_query(created_at);

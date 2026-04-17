@@ -9,7 +9,6 @@ deno.lock
 
 # Docker
 .env
-.env.*
 
 # OS
 .DS_Store
