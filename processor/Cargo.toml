@@ -11,3 +11,8 @@ serde_json         = "1"
 dotenvy            = "0.15"
 tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[patch.crates-io]
+# Redirect published rhythm-open-exchange to local roe submodule (processor-extras).
+# This ensures metron (path dep) and the server both use the same RoxChart type.
+rhythm-open-exchange = { path = "crates/roe/crates/rox" }
