@@ -21,3 +21,6 @@ metron-rs          = { path = "../../crates/metron" }
 rox-formats        = { path = "../../crates/roe/crates/formats", features = ["std"] }
 rox-analysis       = { path = "../../crates/roe/crates/analysis" }
 rox                = { path = "../../crates/roe/crates/rox" }
+
+[dev-dependencies]
+tempfile = "3"
