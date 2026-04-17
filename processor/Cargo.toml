@@ -1,5 +1,5 @@
 [workspace]
-members  = ["apps/*"]
+members  = ["apps/*", "crates/bridge", "crates/db"]
 exclude  = ["crates/roe", "crates/metron"]
 resolver = "2"
 
@@ -11,6 +11,14 @@ serde_json         = "1"
 dotenvy            = "0.15"
 tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+sqlx               = { version = "0.8", features = ["runtime-tokio", "postgres", "macros", "chrono", "migrate", "rust_decimal"] }
+reqwest            = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+ratatui            = "0.28"
+crossterm          = { version = "0.28", features = ["event-stream"] }
+anyhow             = "1"
+chrono             = { version = "0.4", features = ["serde"] }
+rust_decimal       = { version = "1", features = ["serde"] }
+futures            = "0.3"
 
 [patch.crates-io]
 # Redirect published rhythm-open-exchange to local roe submodule (processor-extras).

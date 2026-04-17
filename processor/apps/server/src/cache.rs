@@ -1,6 +1,6 @@
+use bridge::ManiaSkill;
 use moka::future::Cache;
 use std::sync::Arc;
-use crate::types::ManiaSkill;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CacheKey {
@@ -15,9 +15,8 @@ pub struct CacheEntry {
     pub mania_skill: ManiaSkill,
 }
 
-/// Approx. bytes per entry (key + value). Used to bound cache to 1 GB.
 const ENTRY_WEIGHT: u32 = 200;
-const MAX_CAPACITY_BYTES: u64 = 1_073_741_824; // 1 GB
+const MAX_CAPACITY_BYTES: u64 = 1_073_741_824;
 
 pub type AppCache = Arc<Cache<CacheKey, CacheEntry>>;
 

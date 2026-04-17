@@ -3,13 +3,12 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use base64::Engine;
+use bridge::{calculate_one, CalcType, RoxStore};
 use rox_analysis::hash::normalized_notes_hash;
 use rox_formats::auto::auto_decode_bytes;
 
 use crate::cache::{AppCache, CacheEntry, CacheKey};
-use crate::calc::{CalcType, calculate_one};
 use crate::error::ServiceError;
-use crate::rox_store::RoxStore;
 use crate::types::{CalcRequest, CalcResponse, InputKind, RateResult};
 
 #[derive(Clone)]
@@ -22,7 +21,6 @@ pub async fn calculate(
     State(state): State<AppState>,
     Json(req): Json<CalcRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    // 1. Validate calc_type
     let calc_type = CalcType::from_str(&req.calc_type)
         .ok_or_else(|| ServiceError::InvalidArgument(format!("unknown calc_type: {}", req.calc_type)))?;
 
@@ -30,13 +28,12 @@ pub async fn calculate(
         return Err(ServiceError::InvalidArgument("centirates must not be empty".into()));
     }
 
-    // 2. Resolve RoxChart
     let (chart, normalized_hash) = match req.input {
         InputKind::Hash(hash) => {
             let chart = state
                 .store
                 .load(&hash)
-                .map_err(|e| ServiceError::Internal(e))?
+                .map_err(ServiceError::Internal)?
                 .ok_or_else(|| ServiceError::NotFound(
                     format!("rox file not found for hash {hash}, resubmit with file"),
                 ))?;
@@ -53,12 +50,11 @@ pub async fn calculate(
             state
                 .store
                 .save_if_absent(&hash, &chart)
-                .map_err(|e| ServiceError::Internal(e))?;
+                .map_err(ServiceError::Internal)?;
             (chart, hash)
         }
     };
 
-    // 3. Calculate for each centirate (check cache first)
     let mut results = Vec::with_capacity(req.centirates.len());
     for centirate in &req.centirates {
         let key = CacheKey {
@@ -71,7 +67,7 @@ pub async fn calculate(
             hit
         } else {
             let result = calculate_one(&chart, &calc_type, *centirate)
-                .map_err(|e| ServiceError::Internal(e))?;
+                .map_err(ServiceError::Internal)?;
             let entry = CacheEntry {
                 rating: result.rating,
                 mania_skill: result.mania_skill,

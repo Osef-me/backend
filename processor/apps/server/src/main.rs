@@ -1,11 +1,10 @@
 mod cache;
-mod calc;
 mod error;
-mod rox_store;
 mod service;
 mod types;
 
 use axum::{routing::post, Router};
+use bridge::RoxStore;
 use service::AppState;
 use std::sync::Arc;
 use tracing_subscriber::EnvFilter;
@@ -19,7 +18,7 @@ async fn main() {
 
     let rox_path = std::env::var("ROX_PATH").unwrap_or_else(|_| "/data/rox".into());
     let state = AppState {
-        store: Arc::new(rox_store::RoxStore::new(&rox_path)),
+        store: Arc::new(RoxStore::new(&rox_path)),
         cache: cache::new_cache(),
     };
 

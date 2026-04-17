@@ -12,8 +12,6 @@ impl RoxStore {
         Self { base: base.into() }
     }
 
-    /// Load chart from `{base}/{hash}.rox`.
-    /// Returns None if file does not exist.
     pub fn load(&self, hash: &str) -> Result<Option<RoxChart>, String> {
         let path = self.path(hash);
         if !path.exists() {
@@ -24,7 +22,10 @@ impl RoxStore {
         Ok(Some(chart))
     }
 
-    /// Save chart to `{base}/{hash}.rox` if not already present.
+    pub fn contains(&self, hash: &str) -> bool {
+        self.path(hash).exists()
+    }
+
     pub fn save_if_absent(&self, hash: &str, chart: &RoxChart) -> Result<(), String> {
         let path = self.path(hash);
         if path.exists() {
@@ -44,7 +45,6 @@ impl RoxStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rox::model::RoxChart;
     use rox_formats::auto::auto_decode;
 
     #[test]
@@ -52,7 +52,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let store = RoxStore::new(dir.path());
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../crates/metron/assets/test.osu");
+            .join("../metron/assets/test.osu");
         let chart = auto_decode(path).expect("decode test.osu");
 
         store.save_if_absent("abc123", &chart).expect("save");
