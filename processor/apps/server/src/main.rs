@@ -6,6 +6,7 @@ mod cache;
 mod calc;
 mod error;
 mod rox_store;
+mod service;
 mod types;
 
 #[tokio::main]
