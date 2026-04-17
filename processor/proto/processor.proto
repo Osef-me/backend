@@ -1,0 +1,45 @@
+syntax = "proto3";
+package processor;
+
+// Connect-RPC JSON implementation (axum + plain JSON, not tonic).
+// URL: POST /processor.Processor/Calculate
+// Content-Type: application/connect+json
+
+service Processor {
+  rpc Calculate(CalcRequest) returns (CalcResponse);
+}
+
+message CalcRequest {
+  string calc_type = 1;         // osu2016 | osu2018 | osu_current | quaver2025 | interlude2025 | sunnyxxy | etterna
+  repeated uint32 centirates = 2;
+  oneof input {
+    string normalized_hash = 3;
+    FileInput file = 4;
+  }
+}
+
+message FileInput {
+  string extension = 1; // osu | sm | qua | fnf | jrox | yrox
+  bytes content = 2;    // raw bytes; JSON encoding uses base64
+}
+
+message CalcResponse {
+  string normalized_hash = 1;
+  repeated RateResult results = 2;
+}
+
+message RateResult {
+  uint32 centirate = 1;
+  double rating = 2;
+  ManiaSkill mania_skill = 3;
+}
+
+message ManiaSkill {
+  double stream = 1;
+  double jumpstream = 2;
+  double handstream = 3;
+  double stamina = 4;
+  double jackspeed = 5;
+  double chordjack = 6;
+  double technical = 7;
+}

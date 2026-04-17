@@ -14,5 +14,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [patch.crates-io]
 # Redirect published rhythm-open-exchange to local roe submodule (processor-extras).
+# On the processor-extras branch, the crate is renamed `rox`; use the `package`
+# key so the patch entry (keyed by the published name) resolves to it.
 # This ensures metron (path dep) and the server both use the same RoxChart type.
-rhythm-open-exchange = { path = "crates/roe/crates/rox" }
+rhythm-open-exchange = { path = "crates/roe/crates/rox", package = "rox" }
