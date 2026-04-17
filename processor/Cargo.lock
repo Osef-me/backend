@@ -1154,6 +1154,7 @@ dependencies = [
  "base64",
  "dotenvy",
  "metron-rs",
+ "minacalc-rs",
  "moka",
  "rox",
  "rox-analysis",

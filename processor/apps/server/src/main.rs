@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 use tracing_subscriber::EnvFilter;
 
 mod cache;
+mod calc;
 mod error;
 mod rox_store;
 mod types;
