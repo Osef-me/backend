@@ -7,6 +7,9 @@ import { db } from "./db/client.ts";
 import { schema } from "./schema/index.ts";
 import { serviceLog } from "./db/schemas/service_log.ts";
 import { processorRouter } from "./processor/route.ts";
+import { pendingRouter } from "./internal/pending.ts";
+import { requireInternalAuth } from "./middleware/auth.ts";
+import { rateLimit } from "./middleware/rate_limit.ts";
 
 const landing = await Deno.readTextFile(new URL("./landing.html", import.meta.url));
 const statusPage = await Deno.readTextFile(new URL("./status.html", import.meta.url));
@@ -81,9 +84,13 @@ app.get("/api/status", async (c) => {
   return c.json(data);
 });
 
-app.route("/api/beatmap", processorRouter);
+app.use("/api/*", rateLimit({ windowMs: 60_000, max: 100 }));
+app.use("/api/internal/*", requireInternalAuth);
 
-app.get("/health", (c) => c.json({ ok: true }));
+app.route("/api/beatmap", processorRouter);
+app.route("/api/internal/pending", pendingRouter);
+
+app.get("/health", (c) => c.json({ status: "ok" }));
 
 startHealthChecker();
 

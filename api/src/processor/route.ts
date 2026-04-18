@@ -4,9 +4,11 @@ import { beatmap } from "../db/schemas/beatmap.ts";
 import { beatmapRating } from "../db/schemas/beatmap_rating.ts";
 import { beatmapManiaSkill } from "../db/schemas/beatmap_mania_skill.ts";
 import { beatmapManiaRatio } from "../db/schemas/beatmap_mania_ratio.ts";
+import { pendingBeatmap } from "../db/schemas/pending_beatmap.ts";
 import { eq } from "drizzle-orm";
 import { calculateRating } from "./client.ts";
 import type { CalcType, RateResult } from "./types.ts";
+import { isValidHash } from "../middleware/validate.ts";
 
 export const processorRouter = new Hono();
 
@@ -43,6 +45,9 @@ processorRouter.post("/calculate", async (c) => {
   if (!hash && !file) {
     return c.json({ error: "provide hash or file" }, 400);
   }
+  if (hash && !isValidHash(hash)) {
+    return c.json({ error: "invalid hash format" }, 400);
+  }
 
   const req = hash
     ? { calcType, centirates, normalizedHash: hash }
@@ -71,6 +76,7 @@ processorRouter.post("/calculate", async (c) => {
 
       if (beatmapRow) {
         await persistRating(beatmapRow.id, calcType, result100);
+        await removeFromPending(response.normalizedHash);
       }
     }
   }
@@ -139,5 +145,17 @@ async function persistRating(
         target: [beatmapManiaRatio.beatmapId],
         set: ratio,
       });
+  }
+}
+
+async function removeFromPending(notesHash: string) {
+  const beatmapRow = await db
+    .select({ osuHash: beatmap.osuHash })
+    .from(beatmap)
+    .where(eq(beatmap.notesHash, notesHash))
+    .then((rows) => rows[0] ?? null);
+
+  if (beatmapRow) {
+    await db.delete(pendingBeatmap).where(eq(pendingBeatmap.osuHash, beatmapRow.osuHash));
   }
 }

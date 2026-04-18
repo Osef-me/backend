@@ -8,6 +8,7 @@ serde        = { workspace = true }
 serde_json   = { workspace = true }
 anyhow       = { workspace = true }
 reqwest      = { workspace = true }
+tokio        = { workspace = true }
 metron-rs    = { path = "../metron" }
 minacalc-rs  = "515"
 rox-formats  = { path = "../roe/crates/formats", features = ["std"] }
