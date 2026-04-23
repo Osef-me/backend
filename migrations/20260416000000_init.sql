@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS beatmap_rating (
     created_at  TIMESTAMP DEFAULT NOW(),
     updated_at  TIMESTAMP DEFAULT NOW(),
     UNIQUE (beatmap_id, rating_type),
-    CONSTRAINT valid_rating_type CHECK (rating_type IN ('osu2016', 'osu2018', 'osu_current', 'etterna', 'quaver', 'interlude', 'sunnyxxy'))
+    CONSTRAINT valid_rating_type CHECK (rating_type IN ('osu2016', 'osu_current', 'etterna', 'quaver', 'interlude', 'sunnyxxy'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_beatmap_rating_beatmap_id  ON beatmap_rating(beatmap_id);

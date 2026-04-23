@@ -14,7 +14,6 @@ export const processorRouter = new Hono();
 
 const CALC_TYPE_TO_RATING_TYPE: Record<CalcType, string> = {
   osu2016: "osu2016",
-  osu2018: "osu2018",
   osu_current: "osu_current",
   quaver2025: "quaver",
   interlude2025: "interlude",
@@ -24,7 +23,6 @@ const CALC_TYPE_TO_RATING_TYPE: Record<CalcType, string> = {
 
 const VALID_CALC_TYPES: CalcType[] = [
   "osu2016",
-  "osu2018",
   "osu_current",
   "quaver2025",
   "interlude2025",

@@ -23,9 +23,9 @@ mod tests {
     }
 
     #[test]
-    fn calculate_one_osu2018_positive() {
+    fn calculate_one_osu2016_positive() {
         let chart = test_chart();
-        let result = calculate_one(&chart, CalcType::Osu2018, 100).unwrap();
+        let result = calculate_one(&chart, CalcType::Osu2016, 100).unwrap();
         assert!(result.rating > 0.0);
     }
 

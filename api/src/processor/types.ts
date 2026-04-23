@@ -1,6 +1,5 @@
 export type CalcType =
   | "osu2016"
-  | "osu2018"
   | "osu_current"
   | "quaver2025"
   | "interlude2025"

@@ -6,7 +6,6 @@ use crate::types::ManiaSkill;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CalcType {
     Osu2016,
-    Osu2018,
     OsuCurrent,
     Quaver2025,
     Interlude2025,
@@ -16,7 +15,6 @@ pub enum CalcType {
 
 pub const ALL_CALC_TYPES: &[CalcType] = &[
     CalcType::Osu2016,
-    CalcType::Osu2018,
     CalcType::OsuCurrent,
     CalcType::Quaver2025,
     CalcType::Interlude2025,
@@ -28,7 +26,6 @@ impl CalcType {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Osu2016       => "osu2016",
-            Self::Osu2018       => "osu2018",
             Self::OsuCurrent    => "osu_current",
             Self::Quaver2025    => "quaver2025",
             Self::Interlude2025 => "interlude2025",
@@ -41,7 +38,6 @@ impl CalcType {
     pub fn rating_type(&self) -> &'static str {
         match self {
             Self::Osu2016       => "osu2016",
-            Self::Osu2018       => "osu2018",
             Self::OsuCurrent    => "osu_current",
             Self::Quaver2025    => "quaver",
             Self::Interlude2025 => "interlude",
@@ -57,7 +53,6 @@ impl FromStr for CalcType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "osu2016"       => Ok(Self::Osu2016),
-            "osu2018"       => Ok(Self::Osu2018),
             "osu_current"   => Ok(Self::OsuCurrent),
             "quaver2025"    => Ok(Self::Quaver2025),
             "interlude2025" => Ok(Self::Interlude2025),
@@ -118,7 +113,6 @@ mod tests {
     #[test]
     fn osu_variants_have_distinct_rating_types() {
         assert_eq!(CalcType::Osu2016.rating_type(), "osu2016");
-        assert_eq!(CalcType::Osu2018.rating_type(), "osu2018");
         assert_eq!(CalcType::OsuCurrent.rating_type(), "osu_current");
     }
 

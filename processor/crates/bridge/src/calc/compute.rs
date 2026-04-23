@@ -5,7 +5,7 @@ use metron_rs::{
     interlude::interlude2025::{Interlude2025, Interlude2025DifficultyContext},
     osu::{
         osu2016::Osu2016,
-        osu2018::{Osu2018, Osu2018DifficultyContext},
+        osu2018::Osu2018DifficultyContext,
         osu_current::OsuCurrent,
     },
     custom::sunnyxxy::{SunnyXXY, SunnyxxyDifficultyContext},
@@ -47,10 +47,6 @@ fn raw_rating(chart: &RoxChart, calc_type: CalcType, centirate: u32) -> Result<f
         CalcType::Osu2016 => {
             let ctx = Osu2018DifficultyContext { clock_rate: Some(clock_rate), overall_difficulty: od };
             Ok(Osu2016.calculate_difficulty(chart, &ctx).map_err(|e| e.to_string())?.stars)
-        }
-        CalcType::Osu2018 => {
-            let ctx = Osu2018DifficultyContext { clock_rate: Some(clock_rate), overall_difficulty: od };
-            Ok(Osu2018.calculate_difficulty(chart, &ctx).map_err(|e| e.to_string())?.stars)
         }
         CalcType::OsuCurrent => {
             let ctx = Osu2018DifficultyContext { clock_rate: Some(clock_rate), overall_difficulty: od };
