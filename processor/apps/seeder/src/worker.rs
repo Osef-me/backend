@@ -7,9 +7,51 @@ use db::{enqueue_pending_beatmap, insert_full_beatmap, load_seeder_progress, sav
 use tokio::sync::Semaphore;
 use tokio::time::sleep;
 
+use crate::config::RATE_MIN;
 use crate::limiter::Limiter;
-use crate::retry::{compute_backoff, is_transient};
+use crate::retry::{compute_backoff, is_rate_limited, is_transient};
 use crate::state::{LogType, Shared};
+
+/// Drop the effective rate by half (floored at RATE_MIN) when we hit a 429.
+async fn on_rate_limited(state: &Shared, limiter: &Limiter) {
+    let mut s = state.write().await;
+    s.rate_limit_hits += 1;
+    s.rate_success_streak = 0;
+    let current = s.rate_per_min;
+    let new_rate = (current / 2).max(RATE_MIN);
+    if new_rate < current {
+        s.rate_per_min = new_rate;
+        drop(s);
+        limiter.set_rate(new_rate);
+        state.write().await.log(
+            LogType::Retry,
+            format!("rate-limit: {current} -> {new_rate} req/min"),
+        );
+    }
+}
+
+/// After a run of successful ops, nudge the rate back up towards `rate_ceiling`.
+async fn on_success(state: &Shared, limiter: &Limiter) {
+    const RECOVERY_THRESHOLD: u64 = 200;
+    const RECOVERY_STEP: u32 = 20;
+
+    let mut s = state.write().await;
+    s.rate_success_streak += 1;
+    let ceiling = s.rate_ceiling;
+    let current = s.rate_per_min;
+    if current >= ceiling || s.rate_success_streak < RECOVERY_THRESHOLD {
+        return;
+    }
+    let new_rate = (current + RECOVERY_STEP).min(ceiling);
+    s.rate_per_min = new_rate;
+    s.rate_success_streak = 0;
+    drop(s);
+    limiter.set_rate(new_rate);
+    state.write().await.log(
+        LogType::Info,
+        format!("rate recovery: {current} -> {new_rate} req/min"),
+    );
+}
 
 const DEFAULT_MAX_CONCURRENT_DOWNLOADS: usize = 32;
 
@@ -67,6 +109,9 @@ pub async fn run(
                     Ok(r) => break r,
                     Err(e) => {
                         let msg = format!("search error (key={key}): {e}");
+                        if is_rate_limited(&msg) {
+                            on_rate_limited(&state, &limiter).await;
+                        }
                         if is_transient(&msg) {
                             let mut s = state.write().await;
                             s.retry_attempt += 1;
@@ -229,6 +274,9 @@ async fn process_beatmap_inner(
     let chart = match download_and_decode_chart(osu, beatmap).await {
         Ok(chart) => chart,
         Err(message) => {
+            if is_rate_limited(&message) {
+                on_rate_limited(state, limiter).await;
+            }
             record_error(state, LogType::Network, message).await;
             return;
         }
@@ -273,17 +321,21 @@ async fn process_beatmap_inner(
 
     match insert_full_beatmap(pool, set_pk, beatmap, &osu_hash, &computed).await {
         Ok(true) => {
-            let mut stats_guard = state.write().await;
-            stats_guard.maps_inserted += 1;
-            stats_guard.ratings_inserted += ratings_count;
-            if stats_guard.maps_inserted % 100 == 0 {
-                if let Ok(size) = query_db_size(pool).await {
-                    stats_guard.db_bytes = size;
+            {
+                let mut stats_guard = state.write().await;
+                stats_guard.maps_inserted += 1;
+                stats_guard.ratings_inserted += ratings_count;
+                if stats_guard.maps_inserted % 100 == 0 {
+                    if let Ok(size) = query_db_size(pool).await {
+                        stats_guard.db_bytes = size;
+                    }
                 }
             }
+            on_success(state, limiter).await;
         }
         Ok(false) => {
             state.write().await.skipped += 1;
+            on_success(state, limiter).await;
         }
         Err(e) => {
             record_error(state, LogType::Db, format!("insert map {}: {e}", beatmap.id)).await;

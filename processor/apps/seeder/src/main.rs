@@ -67,7 +67,11 @@ async fn run() -> Result<()> {
     });
 
     let lim = limiter::Limiter::new(effective_rate);
-    shared.write().await.rate_per_min = effective_rate;
+    {
+        let mut s = shared.write().await;
+        s.rate_per_min = effective_rate;
+        s.rate_ceiling = effective_rate;
+    }
 
     let pool = connect(&cfg.database_url).await?;
     run_migrations(&pool).await?;

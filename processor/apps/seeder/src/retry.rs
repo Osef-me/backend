@@ -13,6 +13,11 @@ pub fn is_transient(msg: &str) -> bool {
     is_transient_message(&msg)
 }
 
+pub fn is_rate_limited(msg: &str) -> bool {
+    let msg = msg.to_lowercase();
+    is_rate_limited_message(&msg)
+}
+
 fn is_transient_message(msg: &str) -> bool {
     msg.contains("connection")
         || msg.contains("timeout")
@@ -21,11 +26,16 @@ fn is_transient_message(msg: &str) -> bool {
         || msg.contains("broken pipe")
         || msg.contains("reset by peer")
         || msg.contains("temporarily unavailable")
-        || msg.contains("too many requests")
-        || msg.contains("rate limit")
+        || is_rate_limited_message(msg)
         || msg.contains("503")
         || msg.contains("502")
         || msg.contains("504")
+}
+
+fn is_rate_limited_message(msg: &str) -> bool {
+    msg.contains("429")
+        || msg.contains("too many requests")
+        || msg.contains("rate limit")
 }
 
 #[cfg(test)]
@@ -59,5 +69,14 @@ mod tests {
         assert!(!is_transient_message("decode error: invalid format"));
         assert!(!is_transient_message("not found"));
         assert!(!is_transient_message("invalid checksum"));
+    }
+
+    #[test]
+    fn detects_rate_limit() {
+        assert!(is_rate_limited("429 too many requests"));
+        assert!(is_rate_limited("dl 123: osu file 429 Too Many Requests"));
+        assert!(is_rate_limited("rate limit exceeded"));
+        assert!(!is_rate_limited("connection refused"));
+        assert!(!is_rate_limited("500 internal server error"));
     }
 }

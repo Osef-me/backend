@@ -45,6 +45,13 @@ pub struct Stats {
     pub rox_bytes: u64,
     pub db_bytes: u64,
     pub current_key: Option<u32>,
+    /// Upper bound for auto-recovery. Seeder never raises `rate_per_min` above
+    /// this. Set once at startup to the configured rate * client_count.
+    pub rate_ceiling: u32,
+    /// Consecutive successful ops since last rate cut; used to ramp back up.
+    pub rate_success_streak: u64,
+    /// Count of rate-limit events observed (shown in TUI for debugging).
+    pub rate_limit_hits: u64,
 }
 
 impl Stats {
