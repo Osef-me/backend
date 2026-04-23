@@ -1,6 +1,20 @@
 use anyhow::{anyhow, Context, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::time::{Duration, Instant};
+
+#[derive(Deserialize)]
+struct NamedRef {
+    #[serde(default)]
+    name: Option<String>,
+}
+
+fn deserialize_named_ref_name<'de, D>(deserializer: D) -> std::result::Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt = Option::<NamedRef>::deserialize(deserializer)?;
+    Ok(opt.and_then(|r| r.name))
+}
 
 const TOKEN_URL: &str = "https://osu.ppy.sh/oauth/token";
 const SEARCH_URL: &str = "https://osu.ppy.sh/api/v2/beatmapsets/search";
@@ -50,6 +64,26 @@ pub struct Beatmapset {
     pub status: Option<String>,
     pub last_updated: Option<String>,
     pub beatmaps: Option<Vec<Beatmap>>,
+
+    // Extra fields (v2 search/lookup response).
+    #[serde(default)]
+    pub user_id: Option<i64>,
+    #[serde(default)]
+    pub play_count: Option<i64>,
+    #[serde(default)]
+    pub favourite_count: Option<i32>,
+    #[serde(default)]
+    pub submitted_date: Option<String>,
+    #[serde(default)]
+    pub ranked_date: Option<String>,
+    /// Set-level BPM (osu! sometimes reports the dominant BPM of the set).
+    #[serde(default)]
+    pub bpm: Option<f64>,
+    /// `{ id, name }` object in the API; we only keep the human-readable name.
+    #[serde(default, deserialize_with = "deserialize_named_ref_name")]
+    pub language: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_named_ref_name")]
+    pub genre: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -76,6 +110,24 @@ pub struct Beatmap {
     pub accuracy: f64,
     pub drain: f64,
     pub status: String,
+
+    // Extra fields (v2 search/lookup response).
+    #[serde(default)]
+    pub playcount: Option<i32>,
+    #[serde(default)]
+    pub passcount: Option<i32>,
+    #[serde(default)]
+    pub difficulty_rating: Option<f64>,
+    #[serde(default)]
+    pub user_id: Option<i64>,
+    #[serde(default)]
+    pub is_scoreable: Option<bool>,
+    #[serde(default)]
+    pub convert: Option<bool>,
+    #[serde(default)]
+    pub last_updated: Option<String>,
+    #[serde(default)]
+    pub ranked: Option<i16>,
 }
 
 #[derive(Clone, Debug)]

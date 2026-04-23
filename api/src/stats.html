@@ -628,10 +628,46 @@
         </div>
       `;
 
+      const setCard = (s, label) => {
+        if (!s) return `<div class="map-ref"><div class="map-text"><div class="map-sub">no data</div></div></div>`;
+        const cover = s.coverUrl ? `style="background-image:url('${esc(s.coverUrl)}')"` : '';
+        const href = s.osuId ? `https://osu.ppy.sh/beatmapsets/${s.osuId}` : '#';
+        const value = label === 'plays' ? s.playCount : s.favouriteCount;
+        return `
+          <a class="ext" href="${href}" target="_blank" rel="noopener">
+            <div class="map-ref">
+              <div class="map-cover" ${cover}></div>
+              <div class="map-text">
+                <div class="map-title">${esc(s.artist)} — ${esc(s.title)}</div>
+                <div class="map-sub">by ${esc(s.creator)}</div>
+              </div>
+              <div class="map-value">${fmtInt(value)}</div>
+            </div>
+          </a>
+        `;
+      };
+
+      const ts = d.topSets ?? {};
       const extremesHtml = `
         <div class="section">
           <div class="section-label">Records</div>
           <div class="grid">
+            <div class="card">
+              <div class="card-head"><div class="card-title">Most played</div><div class="card-badge">beatmap</div></div>
+              ${mapCard(d.extremes.most_played, d.extremes.most_played?.value, v => fmtInt(v))}
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">Highest osu! SR</div><div class="card-badge">star rating</div></div>
+              ${mapCard(d.extremes.highest_sr, d.extremes.highest_sr?.value, v => fmtFloat(v,2))}
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">Most played set</div><div class="card-badge">plays</div></div>
+              ${setCard(ts.mostPlayed, 'plays')}
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">Most favourited set</div><div class="card-badge">favourites</div></div>
+              ${setCard(ts.mostFavourited, 'favs')}
+            </div>
             <div class="card">
               <div class="card-head"><div class="card-title">Fastest BPM</div></div>
               ${mapCard(d.extremes.fastest_bpm, d.extremes.fastest_bpm?.value, v => fmtFloat(v,0))}

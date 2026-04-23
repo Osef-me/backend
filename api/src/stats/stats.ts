@@ -222,6 +222,14 @@ export async function getStats() {
     (SELECT 'max_combo', bm.id, bm.osu_id, bm.difficulty, bs.artist, bs.title, bs.creator, bs.cover_url, bm.max_combo::float
        FROM beatmap bm JOIN beatmapset bs ON bs.id = bm.beatmapset_id
        ORDER BY bm.max_combo DESC LIMIT 1)
+    UNION ALL
+    (SELECT 'most_played', bm.id, bm.osu_id, bm.difficulty, bs.artist, bs.title, bs.creator, bs.cover_url, bm.play_count::float
+       FROM beatmap bm JOIN beatmapset bs ON bs.id = bm.beatmapset_id
+       ORDER BY bm.play_count DESC LIMIT 1)
+    UNION ALL
+    (SELECT 'highest_sr', bm.id, bm.osu_id, bm.difficulty, bs.artist, bs.title, bs.creator, bs.cover_url, bm.difficulty_rating::float
+       FROM beatmap bm JOIN beatmapset bs ON bs.id = bm.beatmapset_id
+       ORDER BY bm.difficulty_rating DESC LIMIT 1)
   `);
 
   const extremesMap: Record<string, (MapRef & { value: number }) | null> = {
@@ -229,6 +237,8 @@ export async function getStats() {
     longest_drain: null,
     most_notes: null,
     max_combo: null,
+    most_played: null,
+    highest_sr: null,
   };
   for (const r of extremes as unknown as Record<string, unknown>[]) {
     const k = String(r.kind);
@@ -243,6 +253,36 @@ export async function getStats() {
       value: Number(r.v),
     };
   }
+
+  const [mostPlayedSet] = await db.execute(sql`
+    SELECT id, osu_id, artist, title, creator, cover_url, play_count::bigint AS play_count, favourite_count::int AS favourite_count
+    FROM beatmapset
+    ORDER BY play_count DESC
+    LIMIT 1
+  `) as unknown as Record<string, unknown>[];
+
+  const [mostFavouritedSet] = await db.execute(sql`
+    SELECT id, osu_id, artist, title, creator, cover_url, play_count::bigint AS play_count, favourite_count::int AS favourite_count
+    FROM beatmapset
+    ORDER BY favourite_count DESC
+    LIMIT 1
+  `) as unknown as Record<string, unknown>[];
+
+  const setRef = (r: Record<string, unknown> | undefined) => r ? {
+    id: Number(r.id),
+    osuId: r.osu_id == null ? null : Number(r.osu_id),
+    artist: String(r.artist),
+    title: String(r.title),
+    creator: String(r.creator),
+    coverUrl: r.cover_url == null ? null : String(r.cover_url),
+    playCount: Number(r.play_count),
+    favouriteCount: Number(r.favourite_count),
+  } : null;
+
+  const topSets = {
+    mostPlayed: setRef(mostPlayedSet),
+    mostFavourited: setRef(mostFavouritedSet),
+  };
 
   const rtStats: RatingTypeStat[] =
     (ratingTypes as unknown as Record<string, unknown>[]).map((r) => ({
@@ -314,6 +354,7 @@ export async function getStats() {
         : null,
     })),
     extremes: extremesMap,
+    topSets,
     generatedAt: new Date().toISOString(),
   };
 }

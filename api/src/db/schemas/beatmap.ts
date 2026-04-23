@@ -1,4 +1,5 @@
 import {
+  boolean,
   decimal,
   index,
   integer,
@@ -35,6 +36,15 @@ export const beatmap = pgTable(
     hp: decimal("hp", { precision: 3, scale: 1 }).notNull(),
     mode: smallint("mode").notNull().default(3),
     status: varchar("status", { length: 20 }).notNull().default("pending"),
+    playCount: integer("play_count").notNull().default(0),
+    passCount: integer("pass_count").notNull().default(0),
+    difficultyRating: decimal("difficulty_rating", { precision: 5, scale: 2 })
+      .notNull().default("0"),
+    mapperUserId: integer("mapper_user_id"),
+    isScoreable: boolean("is_scoreable").notNull().default(true),
+    isConvert: boolean("is_convert").notNull().default(false),
+    osuLastUpdated: timestamp("osu_last_updated"),
+    osuRankedCode: smallint("osu_ranked_code"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
