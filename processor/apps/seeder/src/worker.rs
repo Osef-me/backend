@@ -143,6 +143,7 @@ pub async fn run(
                     state.clone(),
                     semaphore.clone(),
                     set,
+                    key,
                 ));
                 handles.push(handle);
             }
@@ -191,6 +192,7 @@ async fn process_beatmapset_parallel(
     state: Shared,
     semaphore: Arc<Semaphore>,
     set: Beatmapset,
+    key: u32,
 ) {
     let set_id = set.id;
     match upsert_beatmapset(&pool, &set).await {
@@ -201,7 +203,16 @@ async fn process_beatmapset_parallel(
             state.write().await.last_title = Some(format!("{} - {}", set.artist, set.title));
 
             if let Some(beatmaps) = set.beatmaps {
-                let mania_maps: Vec<_> = beatmaps.into_iter().filter(|b| b.mode_int == 3).collect();
+                let before = beatmaps.len();
+                let mania_maps: Vec<_> = beatmaps
+                    .into_iter()
+                    .filter(|b| b.mode_int == 3 && (b.cs.round() as u32) == key)
+                    .collect();
+                let skipped_wrong_key = before.saturating_sub(mania_maps.len());
+                if skipped_wrong_key > 0 {
+                    let mut s = state.write().await;
+                    s.skipped += skipped_wrong_key as u64;
+                }
                 let mut handles = Vec::with_capacity(mania_maps.len());
 
                 for beatmap in mania_maps {
