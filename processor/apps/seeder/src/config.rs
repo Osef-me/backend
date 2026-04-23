@@ -24,7 +24,7 @@ impl Config {
             initial_rate_per_min: std::env::var("SEEDER_RATE")
                 .ok()
                 .and_then(|v| v.parse().ok())
-                .unwrap_or(200),
+                .unwrap_or(600),
             rox_path: std::env::var("ROX_PATH").unwrap_or_else(|_| "rox_data".into()),
             keys,
         })
@@ -57,7 +57,8 @@ fn parse_keys(raw: &str) -> Result<Vec<u32>> {
 }
 
 pub const RATE_MIN: u32 = 10;
-pub const RATE_MAX: u32 = 200;
+// osu! API: 1200 req/min official + 200 burst. Leave some headroom.
+pub const RATE_MAX: u32 = 1100;
 
 #[cfg(test)]
 mod tests {

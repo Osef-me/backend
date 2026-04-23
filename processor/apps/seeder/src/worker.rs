@@ -11,7 +11,15 @@ use crate::limiter::Limiter;
 use crate::retry::{compute_backoff, is_transient};
 use crate::state::{LogType, Shared};
 
-const MAX_CONCURRENT_DOWNLOADS: usize = 8;
+const DEFAULT_MAX_CONCURRENT_DOWNLOADS: usize = 32;
+
+fn max_concurrent_downloads() -> usize {
+    std::env::var("SEEDER_MAX_DOWNLOADS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .filter(|&n: &usize| n > 0)
+        .unwrap_or(DEFAULT_MAX_CONCURRENT_DOWNLOADS)
+}
 
 pub async fn run(
     pool: PgPool,
@@ -21,7 +29,12 @@ pub async fn run(
     state: Shared,
     keys: Vec<u32>,
 ) {
-    let semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT_DOWNLOADS));
+    let concurrent = max_concurrent_downloads();
+    state
+        .write()
+        .await
+        .log(LogType::Info, format!("concurrent downloads = {concurrent}"));
+    let semaphore = Arc::new(Semaphore::new(concurrent));
     let mut key_states = load_key_states(&pool, &state, &keys).await;
 
     'outer: for idx in 0..key_states.len() {
