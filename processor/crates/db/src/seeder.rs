@@ -2,9 +2,23 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyProgress {
+    pub key: u32,
+    #[serde(default)]
+    pub cursor: Option<String>,
+    #[serde(default)]
+    pub done: bool,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SeederProgress {
+    /// Legacy single-key cursor (pre key-per-cursor). Preserved for backwards
+    /// compatibility when loading older seeder_state rows.
+    #[serde(default)]
     pub cursor: Option<String>,
+    #[serde(default)]
+    pub keys: Vec<KeyProgress>,
     pub total_known: Option<u64>,
     pub sets_inserted: u64,
     pub maps_inserted: u64,

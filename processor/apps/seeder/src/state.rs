@@ -3,6 +3,8 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
 
+use crate::logfile;
+
 const MAX_LOG_ENTRIES: usize = 100;
 
 #[derive(Clone, Debug)]
@@ -42,10 +44,12 @@ pub struct Stats {
     pub retry_attempt: u32,
     pub rox_bytes: u64,
     pub db_bytes: u64,
+    pub current_key: Option<u32>,
 }
 
 impl Stats {
     pub fn log(&mut self, log_type: LogType, message: String) {
+        logfile::log_state_entry(&log_type, &message);
         if self.logs.len() >= MAX_LOG_ENTRIES {
             self.logs.pop_front();
         }

@@ -150,13 +150,19 @@ impl OsuClient {
         resp.bytes().await.context("osu file bytes").map(|b| b.to_vec())
     }
 
-    pub async fn search_mania(&mut self, cursor: Option<&str>) -> Result<SearchResp> {
+    pub async fn search_mania(&mut self, cursor: Option<&str>, key: u32) -> Result<SearchResp> {
         let token = self.ensure_token().await?;
+        let key_str = key.to_string();
         let mut req = self
             .http
             .get(SEARCH_URL)
             .bearer_auth(token)
-            .query(&[("m", "3"), ("s", "any"), ("nsfw", "true"), ("key", "4")]);
+            .query(&[
+                ("m", "3"),
+                ("s", "any"),
+                ("nsfw", "true"),
+                ("key", key_str.as_str()),
+            ]);
         if let Some(cursor_string) = cursor {
             req = req.query(&[("cursor_string", cursor_string)]);
         }

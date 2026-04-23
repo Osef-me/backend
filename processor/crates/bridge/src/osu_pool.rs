@@ -31,10 +31,10 @@ impl OsuClientPool {
         self.clients[idx].clone()
     }
 
-    pub async fn search_mania(&self, cursor: Option<&str>) -> Result<SearchResp> {
+    pub async fn search_mania(&self, cursor: Option<&str>, key: u32) -> Result<SearchResp> {
         let client = self.next_client();
         let mut guard: tokio::sync::MutexGuard<'_, OsuClient> = client.lock().await;
-        guard.search_mania(cursor).await
+        guard.search_mania(cursor, key).await
     }
 
     pub async fn download_osu_file(&self, beatmap_id: i64) -> Result<Vec<u8>> {

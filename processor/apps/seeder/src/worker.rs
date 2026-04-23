@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use bridge::osu::{Beatmap, Beatmapset};
 use bridge::{calculate_all, decode_bytes, normalized_hash_100, CalcResult, CalcType, OsuClientPool, RoxChart, RoxStore};
-use db::{enqueue_pending_beatmap, insert_full_beatmap, load_seeder_progress, save_seeder_progress, upsert_beatmapset, ComputedBeatmapData, PgPool, SeederProgress};
+use db::{enqueue_pending_beatmap, insert_full_beatmap, load_seeder_progress, save_seeder_progress, upsert_beatmapset, ComputedBeatmapData, KeyProgress, PgPool, SeederProgress};
 use tokio::sync::Semaphore;
 use tokio::time::sleep;
 
@@ -19,73 +19,101 @@ pub async fn run(
     limiter: Arc<Limiter>,
     rox_store: Arc<RoxStore>,
     state: Shared,
+    keys: Vec<u32>,
 ) {
     let semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT_DOWNLOADS));
-    let mut cursor: Option<String> = load_saved_progress(&pool, &state).await;
+    let mut key_states = load_key_states(&pool, &state, &keys).await;
 
-    loop {
-        if state.read().await.shutdown {
-            break;
-        }
-        if state.read().await.paused {
-            sleep(Duration::from_millis(200)).await;
+    'outer: for idx in 0..key_states.len() {
+        if key_states[idx].done {
             continue;
         }
+        let key = key_states[idx].key;
 
-        limiter.acquire().await;
+        {
+            let mut s = state.write().await;
+            s.current_key = Some(key);
+            s.log(LogType::Info, format!("starting key={key}"));
+        }
 
-        let resp = loop {
-            match osu.search_mania(cursor.as_deref()).await {
-                Ok(r) => break r,
-                Err(e) => {
-                    let msg = format!("search error: {e}");
-                    if is_transient(&msg) {
-                        let mut s = state.write().await;
-                        s.retry_attempt += 1;
-                        let attempt = s.retry_attempt;
-                        s.log(LogType::Retry, format!("[attempt {attempt}] {msg}"));
-                        drop(s);
-                        sleep(compute_backoff(attempt)).await;
-                    } else {
-                        record_error(&state, LogType::Network, msg).await;
-                        sleep(Duration::from_secs(2)).await;
+        let mut cursor = key_states[idx].cursor.clone();
+
+        loop {
+            if state.read().await.shutdown {
+                break 'outer;
+            }
+            if state.read().await.paused {
+                sleep(Duration::from_millis(200)).await;
+                continue;
+            }
+
+            limiter.acquire().await;
+
+            let resp = loop {
+                match osu.search_mania(cursor.as_deref(), key).await {
+                    Ok(r) => break r,
+                    Err(e) => {
+                        let msg = format!("search error (key={key}): {e}");
+                        if is_transient(&msg) {
+                            let mut s = state.write().await;
+                            s.retry_attempt += 1;
+                            let attempt = s.retry_attempt;
+                            s.log(LogType::Retry, format!("[attempt {attempt}] {msg}"));
+                            drop(s);
+                            sleep(compute_backoff(attempt)).await;
+                        } else {
+                            record_error(&state, LogType::Network, msg).await;
+                            sleep(Duration::from_secs(2)).await;
+                        }
                     }
                 }
+            };
+            state.write().await.retry_attempt = 0;
+
+            update_pagination_state(&state, &resp).await;
+
+            let mut handles = Vec::new();
+            for set in resp.beatmapsets {
+                if state.read().await.shutdown {
+                    break;
+                }
+                let handle = tokio::spawn(process_beatmapset_parallel(
+                    pool.clone(),
+                    osu.clone(),
+                    limiter.clone(),
+                    rox_store.clone(),
+                    state.clone(),
+                    semaphore.clone(),
+                    set,
+                ));
+                handles.push(handle);
             }
-        };
-        state.write().await.retry_attempt = 0;
+            for handle in handles {
+                let _ = handle.await;
+            }
 
-        update_pagination_state(&state, &resp).await;
+            cursor = resp.cursor_string;
+            key_states[idx].cursor = cursor.clone();
+            state.write().await.last_cursor = cursor.clone();
 
-        let mut handles = Vec::new();
-        for set in resp.beatmapsets {
-            if state.read().await.shutdown {
+            if cursor.is_none() {
+                key_states[idx].done = true;
+                state.write().await.log(
+                    LogType::Info,
+                    format!("key={key} finished (no more cursor)"),
+                );
+                persist_progress(&pool, &state, &key_states).await;
                 break;
             }
-            let handle = tokio::spawn(process_beatmapset_parallel(
-                pool.clone(),
-                osu.clone(),
-                limiter.clone(),
-                rox_store.clone(),
-                state.clone(),
-                semaphore.clone(),
-                set,
-            ));
-            handles.push(handle);
-        }
-        for handle in handles {
-            let _ = handle.await;
-        }
 
-        cursor = resp.cursor_string;
-        state.write().await.last_cursor = cursor.clone();
-        persist_progress(&pool, &state, cursor.as_deref()).await;
-        if cursor.is_none() {
-            let mut stats_guard = state.write().await;
-            stats_guard.done = true;
-            stats_guard.log(LogType::Info, "finished (no more cursor)".into());
-            break;
+            persist_progress(&pool, &state, &key_states).await;
         }
+    }
+
+    if key_states.iter().all(|k| k.done) {
+        let mut s = state.write().await;
+        s.done = true;
+        s.log(LogType::Info, "all keys finished".into());
     }
 }
 
@@ -208,10 +236,21 @@ async fn process_beatmap_inner(
         s.rox_bytes += bytes;
     }
 
-    let (proportions, ratings) = match calculate_all(&chart, 100) {
-        Ok(result) => result,
-        Err(message) => {
+    let chart_for_calc = chart;
+    let calc_join = tokio::task::spawn_blocking(move || calculate_all(&chart_for_calc, 100)).await;
+    let (proportions, ratings) = match calc_join {
+        Ok(Ok(result)) => result,
+        Ok(Err(message)) => {
             record_error(state, LogType::Calc, format!("calc {}: {message}", beatmap.id)).await;
+            return;
+        }
+        Err(e) => {
+            record_error(
+                state,
+                LogType::Calc,
+                format!("calc join {}: {e}", beatmap.id),
+            )
+            .await;
             return;
         }
     };
@@ -279,8 +318,8 @@ async fn query_db_size(pool: &PgPool) -> Result<u64, String> {
     db::query_db_size(pool).await.map_err(|e| e.to_string())
 }
 
-async fn load_saved_progress(pool: &PgPool, state: &Shared) -> Option<String> {
-    match load_seeder_progress(pool).await {
+async fn load_key_states(pool: &PgPool, state: &Shared, configured_keys: &[u32]) -> Vec<KeyProgress> {
+    let saved = match load_seeder_progress(pool).await {
         Ok(Some(progress)) => {
             let mut s = state.write().await;
             s.total_known = progress.total_known;
@@ -292,25 +331,83 @@ async fn load_saved_progress(pool: &PgPool, state: &Shared) -> Option<String> {
             s.pages_fetched = progress.pages_fetched;
             s.errors = progress.errors;
             s.skipped = progress.skipped;
-            let cursor_preview = progress.cursor.as_ref().map(|c| &c[..c.len().min(20)]).unwrap_or("none");
-            s.log(LogType::Info, format!("resuming: {} sets, {} maps, cursor: {}", progress.sets_inserted, progress.maps_inserted, cursor_preview));
-            progress.cursor
+            s.log(
+                LogType::Info,
+                format!(
+                    "resuming: {} sets, {} maps",
+                    progress.sets_inserted, progress.maps_inserted
+                ),
+            );
+            Some(progress)
         }
         Ok(None) => {
-            state.write().await.log(LogType::Info, "starting fresh (no saved progress)".into());
+            state
+                .write()
+                .await
+                .log(LogType::Info, "starting fresh (no saved progress)".into());
             None
         }
         Err(e) => {
-            state.write().await.log(LogType::Db, format!("failed to load progress: {e}"));
+            state
+                .write()
+                .await
+                .log(LogType::Db, format!("failed to load progress: {e}"));
             None
         }
+    };
+
+    let mut out: Vec<KeyProgress> = configured_keys
+        .iter()
+        .map(|&k| KeyProgress { key: k, cursor: None, done: false })
+        .collect();
+
+    if let Some(progress) = saved {
+        for kp in &progress.keys {
+            if let Some(target) = out.iter_mut().find(|k| k.key == kp.key) {
+                target.cursor = kp.cursor.clone();
+                target.done = kp.done;
+            }
+        }
+
+        // Legacy single-cursor row: treat it as progress for the first configured
+        // key if we have no per-key state yet.
+        if progress.keys.is_empty() {
+            if let Some(first) = out.first_mut() {
+                first.cursor = progress.cursor.clone();
+                state.write().await.log(
+                    LogType::Info,
+                    format!(
+                        "legacy cursor adopted for key={}",
+                        first.key
+                    ),
+                );
+            }
+        }
     }
+
+    for kp in &out {
+        let preview = kp
+            .cursor
+            .as_ref()
+            .map(|c| c[..c.len().min(20)].to_string())
+            .unwrap_or_else(|| "none".into());
+        state.write().await.log(
+            LogType::Info,
+            format!(
+                "key={} cursor={} done={}",
+                kp.key, preview, kp.done
+            ),
+        );
+    }
+
+    out
 }
 
-async fn persist_progress(pool: &PgPool, state: &Shared, cursor: Option<&str>) {
+async fn persist_progress(pool: &PgPool, state: &Shared, keys: &[KeyProgress]) {
     let s = state.read().await;
     let progress = SeederProgress {
-        cursor: cursor.map(String::from),
+        cursor: None,
+        keys: keys.to_vec(),
         total_known: s.total_known,
         sets_inserted: s.sets_inserted,
         maps_inserted: s.maps_inserted,
@@ -326,4 +423,3 @@ async fn persist_progress(pool: &PgPool, state: &Shared, cursor: Option<&str>) {
         eprintln!("failed to save progress: {e}");
     }
 }
-
