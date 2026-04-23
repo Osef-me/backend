@@ -10,9 +10,11 @@ import { processorRouter } from "./processor/route.ts";
 import { pendingRouter } from "./internal/pending.ts";
 import { requireInternalAuth } from "./middleware/auth.ts";
 import { rateLimit } from "./middleware/rate_limit.ts";
+import { getStats } from "./stats/stats.ts";
 
 const landing = await Deno.readTextFile(new URL("./landing.html", import.meta.url));
 const statusPage = await Deno.readTextFile(new URL("./status.html", import.meta.url));
+const statsPage = await Deno.readTextFile(new URL("./stats.html", import.meta.url));
 
 const app = new Hono();
 
@@ -28,6 +30,18 @@ app.use("/graphql", (c) => yoga.handle(c.req.raw, c));
 
 app.get("/", (c) => c.html(landing));
 app.get("/status", (c) => c.html(statusPage));
+app.get("/stats", (c) => c.html(statsPage));
+
+let statsCache: { at: number; data: unknown } | null = null;
+app.get("/api/stats", async (c) => {
+  const now = Date.now();
+  if (statsCache && now - statsCache.at < 60_000) {
+    return c.json(statsCache.data);
+  }
+  const data = await getStats();
+  statsCache = { at: now, data };
+  return c.json(data);
+});
 
 app.get("/api/status", async (c) => {
   const since = new Date();
