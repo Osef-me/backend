@@ -36,7 +36,7 @@ type RatingTypeStat = {
 export async function getStats() {
   const [
     totals,
-    modes,
+    keyModes,
     statuses,
     bpmAgg,
     bpmHist,
@@ -52,13 +52,11 @@ export async function getStats() {
         (SELECT count(*)::int FROM beatmapset)          AS beatmapsets,
         (SELECT count(*)::int FROM beatmap_rating)      AS ratings,
         (SELECT count(*)::int FROM beatmap_mania_skill) AS skills,
-        (SELECT count(*)::int FROM beatmap_duplicate)   AS duplicates,
-        (SELECT count(*)::int FROM pending_beatmap)     AS pending,
-        (SELECT count(*)::int FROM failed_query)        AS failed
+        (SELECT count(*)::int FROM beatmap_duplicate)   AS duplicates
     `),
     db.execute(sql`
-      SELECT mode, count(*)::int AS count
-      FROM beatmap GROUP BY mode ORDER BY count DESC
+      SELECT cs::int AS keys, count(*)::int AS count
+      FROM beatmap GROUP BY cs ORDER BY cs
     `),
     db.execute(sql`
       SELECT status, count(*)::int AS count
@@ -267,11 +265,9 @@ export async function getStats() {
       ratings: Number(t.ratings),
       skills: Number(t.skills),
       duplicates: Number(t.duplicates),
-      pending: Number(t.pending),
-      failed: Number(t.failed),
     },
-    modes: (modes as unknown as Record<string, unknown>[]).map((r) => ({
-      mode: Number(r.mode),
+    keyModes: (keyModes as unknown as Record<string, unknown>[]).map((r) => ({
+      keys: Number(r.keys),
       count: Number(r.count),
     })),
     statuses: (statuses as unknown as Record<string, unknown>[]).map((r) => ({

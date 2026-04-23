@@ -11,6 +11,7 @@ import { pendingRouter } from "./internal/pending.ts";
 import { requireInternalAuth } from "./middleware/auth.ts";
 import { rateLimit } from "./middleware/rate_limit.ts";
 import { getStats } from "./stats/stats.ts";
+import { counters, getServerLoad } from "./stats/server_load.ts";
 
 const landing = await Deno.readTextFile(new URL("./landing.html", import.meta.url));
 const statusPage = await Deno.readTextFile(new URL("./status.html", import.meta.url));
@@ -19,6 +20,10 @@ const statsPage = await Deno.readTextFile(new URL("./stats.html", import.meta.ur
 const app = new Hono();
 
 app.use("*", logger());
+app.use("*", async (c, next) => {
+  counters.requests++;
+  await next();
+});
 
 const yoga = createYoga({
   schema,
@@ -42,6 +47,8 @@ app.get("/api/stats", async (c) => {
   statsCache = { at: now, data };
   return c.json(data);
 });
+
+app.get("/api/server-load", async (c) => c.json(await getServerLoad()));
 
 app.get("/api/status", async (c) => {
   const since = new Date();

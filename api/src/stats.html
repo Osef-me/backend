@@ -272,6 +272,72 @@
       text-align: center;
       font-size: 0.85rem;
     }
+
+    /* server load */
+    .load-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.8rem;
+    }
+    .load-card {
+      background: #1f1f1f;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+    }
+    .load-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 0.3rem;
+    }
+    .load-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    .load-value.dim { color: #aaa; font-weight: 600; }
+    .load-sub {
+      font-size: 0.65rem;
+      color: #666;
+      margin-top: 0.15rem;
+    }
+
+    /* svg chart */
+    .chart {
+      width: 100%;
+      height: 160px;
+      display: block;
+    }
+    .chart rect {
+      fill: rgba(255,60,60,0.55);
+      transition: fill 0.15s;
+    }
+    .chart rect:hover {
+      fill: rgba(255,120,120,0.9);
+    }
+    .chart .axis {
+      stroke: #333;
+      stroke-width: 1;
+    }
+    .chart .tick {
+      fill: #666;
+      font-size: 9px;
+      font-family: system-ui, sans-serif;
+    }
+    .chart .bar-label {
+      fill: #aaa;
+      font-size: 9px;
+      text-anchor: middle;
+    }
+    .chart .bar-count {
+      fill: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      text-anchor: middle;
+    }
   </style>
 </head>
 <body>
@@ -285,6 +351,11 @@
 
     <h1 class="title">Stats</h1>
     <div class="subtitle">aggregate view of the osu!mania corpus</div>
+
+    <div class="section">
+      <div class="section-label">Server load</div>
+      <div id="load" class="load-grid"></div>
+    </div>
 
     <div id="root" class="loading">loading…</div>
   </div>
@@ -361,7 +432,14 @@
       const m = Math.floor(s/60), sec = s%60;
       return `${m}:${String(sec).padStart(2,'0')}`;
     };
-    const MODES = {0:'osu!', 1:'taiko', 2:'catch', 3:'mania'};
+    const fmtUptime = s => {
+      if (s == null) return '—';
+      const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
+      if (d) return `${d}d ${h}h`;
+      if (h) return `${h}h ${m}m`;
+      return `${m}m ${s%60}s`;
+    };
+    const fmtMB = b => b == null ? '—' : `${(b/1024/1024).toFixed(1)} MB`;
     const SKILL_LABEL = {
       stream:'Stream', jumpstream:'Jumpstream', handstream:'Handstream',
       stamina:'Stamina', jackspeed:'Jackspeed', chordjack:'Chordjack', technical:'Technical'
@@ -408,6 +486,61 @@
       }).join('') + `</div>`;
     }
 
+    /**
+     * Vertical SVG bar chart.
+     * items: [{ label, count }]
+     * opts:  { width, height, showCount }
+     */
+    function svgChart(items, opts = {}) {
+      const W = opts.width  ?? 520;
+      const H = opts.height ?? 160;
+      const pad = { t: 12, r: 10, b: 26, l: 32 };
+      const plotW = W - pad.l - pad.r;
+      const plotH = H - pad.t - pad.b;
+
+      if (!items.length) return `<svg class="chart" viewBox="0 0 ${W} ${H}"></svg>`;
+
+      const max = Math.max(...items.map(it => it.count));
+      const barW = plotW / items.length;
+      const gap = Math.max(2, barW * 0.15);
+
+      // y ticks: 4 steps
+      const ticks = Array.from({length:4}, (_, i) => Math.round((max/3)*(i+0)));
+      const yScale = v => plotH - (v / (max || 1)) * plotH;
+
+      const gridLines = ticks.map(t => {
+        const y = pad.t + yScale(t);
+        return `<line class="axis" x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" opacity="0.3"/>
+                <text class="tick" x="${pad.l-4}" y="${y+3}" text-anchor="end">${fmtInt(t)}</text>`;
+      }).join('');
+
+      const bars = items.map((it, i) => {
+        const h = (it.count / (max || 1)) * plotH;
+        const x = pad.l + i*barW + gap/2;
+        const y = pad.t + plotH - h;
+        const cx = x + (barW - gap)/2;
+        const label = String(it.label);
+        const countLbl = opts.showCount === false
+          ? ''
+          : `<text class="bar-count" x="${cx}" y="${y-4}">${fmtInt(it.count)}</text>`;
+        return `
+          <g>
+            <rect x="${x}" y="${y}" width="${barW-gap}" height="${h}" rx="2">
+              <title>${esc(label)}: ${fmtInt(it.count)}</title>
+            </rect>
+            ${countLbl}
+            <text class="bar-label" x="${cx}" y="${H-8}">${esc(label)}</text>
+          </g>
+        `;
+      }).join('');
+
+      return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        ${gridLines}
+        <line class="axis" x1="${pad.l}" y1="${pad.t+plotH}" x2="${W-pad.r}" y2="${pad.t+plotH}"/>
+        ${bars}
+      </svg>`;
+    }
+
     /* ── render ── */
     async function load() {
       const res = await fetch('/api/stats');
@@ -421,19 +554,17 @@
           <div class="total-card"><div class="total-label">Ratings</div><div class="total-value">${fmtInt(d.totals.ratings)}</div></div>
           <div class="total-card"><div class="total-label">Mania Skills</div><div class="total-value">${fmtInt(d.totals.skills)}</div></div>
           <div class="total-card"><div class="total-label">Duplicates</div><div class="total-value">${fmtInt(d.totals.duplicates)}</div></div>
-          <div class="total-card"><div class="total-label">Pending</div><div class="total-value">${fmtInt(d.totals.pending)}</div></div>
-          <div class="total-card"><div class="total-label">Failed</div><div class="total-value">${fmtInt(d.totals.failed)}</div></div>
         </div>
       `;
 
-      const modesHtml = `<div class="card">
-        <div class="card-head"><div class="card-title">By Mode</div></div>
-        ${bars(d.modes, x=>x.mode, x=>`${MODES[x.mode] ?? 'mode '+x.mode}`, x=>x.count)}
+      const keysHtml = `<div class="card">
+        <div class="card-head"><div class="card-title">By Key count</div><div class="card-badge">mania (cs)</div></div>
+        ${svgChart(d.keyModes.map(x => ({ label: `${x.keys}K`, count: x.count })))}
       </div>`;
 
       const statusHtml = `<div class="card">
         <div class="card-head"><div class="card-title">By Status</div></div>
-        ${bars(d.statuses, x=>x.status, x=>x.status, x=>x.count)}
+        ${svgChart(d.statuses.map(x => ({ label: x.status, count: x.count })))}
       </div>`;
 
       const bpmHtml = `<div class="card">
@@ -441,7 +572,7 @@
           <div class="card-title">BPM</div>
           <div class="card-badge">min ${fmtFloat(d.bpm.min,0)} · avg ${fmtFloat(d.bpm.avg)} · med ${fmtFloat(d.bpm.median,0)} · max ${fmtFloat(d.bpm.max,0)}</div>
         </div>
-        ${bars(d.bpm.histogram, x=>x.bucket, x=>x.bucket, x=>x.count)}
+        ${svgChart(d.bpm.histogram.map(x => ({ label: x.bucket, count: x.count })))}
       </div>`;
 
       const lenHtml = `<div class="card">
@@ -561,7 +692,7 @@
         <div class="section">
           <div class="section-label">Distribution</div>
           <div class="grid">
-            ${modesHtml}
+            ${keysHtml}
             ${statusHtml}
             ${bpmHtml}
             ${lenHtml}
@@ -580,6 +711,40 @@
     load().catch(e => {
       document.getElementById('root').textContent = 'failed to load: ' + (e?.message ?? e);
     });
+
+    /* ── server load poller ── */
+    async function loadServer() {
+      try {
+        const res = await fetch('/api/server-load');
+        const s = await res.json();
+        const el = document.getElementById('load');
+        el.innerHTML = `
+          <div class="load-card">
+            <div class="load-label">Uptime</div>
+            <div class="load-value">${fmtUptime(s.uptimeSec)}</div>
+          </div>
+          <div class="load-card">
+            <div class="load-label">Requests served</div>
+            <div class="load-value">${fmtInt(s.requests)}</div>
+          </div>
+          <div class="load-card">
+            <div class="load-label">Resident memory</div>
+            <div class="load-value">${fmtMB(s.memory.rssBytes)}</div>
+            <div class="load-sub">heap ${fmtMB(s.memory.heapUsedBytes)} / ${fmtMB(s.memory.heapTotalBytes)}</div>
+          </div>
+          <div class="load-card">
+            <div class="load-label">DB connections</div>
+            <div class="load-value">${fmtInt(s.db.total)}</div>
+            <div class="load-sub">${fmtInt(s.db.active)} active · ${fmtInt(s.db.idle)} idle</div>
+          </div>
+        `;
+      } catch (e) {
+        document.getElementById('load').innerHTML =
+          `<div class="load-card"><div class="load-label">Server load</div><div class="load-value dim">offline</div></div>`;
+      }
+    }
+    loadServer();
+    setInterval(loadServer, 3000);
   </script>
 </body>
 </html>
