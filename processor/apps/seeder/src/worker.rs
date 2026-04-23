@@ -418,8 +418,12 @@ async fn process_beatmap_inner(
 async fn update_pagination_state(state: &Shared, resp: &bridge::osu::SearchResp) {
     let mut stats_guard = state.write().await;
     stats_guard.pages_fetched += 1;
-    if stats_guard.total_known.is_none() {
-        stats_guard.total_known = resp.total;
+    // osu! search `total` is flaky: sometimes capped at ~10000 (their internal
+    // pagination ceiling), sometimes the full corpus size. Accumulate the max
+    // so a lucky later page locks in the real number without ever shrinking.
+    if let Some(new_total) = resp.total {
+        let current = stats_guard.total_known.unwrap_or(0);
+        stats_guard.total_known = Some(current.max(new_total));
     }
 }
 
