@@ -8,16 +8,14 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: #1c1c1c;
+      background: #161616;
       color: #e4e4e4;
       font-family: system-ui, -apple-system, sans-serif;
       min-height: 100vh;
       overflow-x: hidden;
     }
 
-    #bg {
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    }
+    #bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
     body::after {
       content: '';
@@ -33,21 +31,32 @@
     .page {
       position: relative;
       z-index: 2;
-      max-width: 1100px;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 3rem 1.5rem 5rem;
+      padding: 2.5rem 1.5rem 5rem;
     }
+
+    /* palette per section */
+    .section            { --accent: #ff5a5a; --accent-glow: rgba(255,60,60,.35); }
+    .section[data-p="red"]    { --accent: #ff5a5a; --accent-glow: rgba(255,60,60,.35); }
+    .section[data-p="green"]  { --accent: #5add9a; --accent-glow: rgba(60,220,160,.30); }
+    .section[data-p="blue"]   { --accent: #6aa8ff; --accent-glow: rgba(90,180,255,.30); }
+    .section[data-p="violet"] { --accent: #c07fff; --accent-glow: rgba(180,120,255,.35); }
+    .section[data-p="cyan"]   { --accent: #5adde5; --accent-glow: rgba(80,220,240,.30); }
+    .section[data-p="amber"]  { --accent: #ffb547; --accent-glow: rgba(255,180,60,.30); }
+    .section[data-p="orange"] { --accent: #ff8a4c; --accent-glow: rgba(255,130,60,.30); }
+    .section[data-p="teal"]   { --accent: #4cd2b8; --accent-glow: rgba(70,210,180,.30); }
 
     .nav {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 3rem;
+      margin-bottom: 2rem;
     }
     .logo {
       font-size: 1rem;
       font-weight: 800;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       color: #e4e4e4;
       text-decoration: none;
       opacity: 0.6;
@@ -55,288 +64,296 @@
     .logo:hover { opacity: 1; }
     .nav-updated { font-size: 0.72rem; color: #666; }
 
-    h1.title {
-      font-size: clamp(2rem, 5vw, 3rem);
-      font-weight: 900;
-      letter-spacing: 0.05em;
-      color: #fff;
-      text-shadow: 0 0 12px #ff1a1a, 0 0 36px #ff0000;
-      margin-bottom: 0.4rem;
+    /* HERO */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.2rem;
+      margin-bottom: 3rem;
+      padding: 2.2rem 2rem;
+      background: radial-gradient(ellipse at top left, rgba(255,40,40,0.08), transparent 60%), #1b1b1b;
+      border: 1px solid #2a2a2a;
+      border-radius: 14px;
+      position: relative;
+      overflow: hidden;
     }
-    .subtitle { font-size: 0.85rem; color: #777; margin-bottom: 2.8rem; }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      color: #fff;
+      text-shadow: 0 0 14px #ff1a1a, 0 0 40px #ff0000;
+    }
+    .hero-sub { font-size: 0.9rem; color: #777; margin-top: -0.5rem; margin-bottom: 0.4rem; }
+    .hero-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 0.6rem;
+    }
+    @media (max-width: 720px) { .hero-kpis { grid-template-columns: 1fr; gap: 1rem; } }
+    .kpi-xxl .kpi-label {
+      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em;
+      color: #777; margin-bottom: 0.35rem;
+    }
+    .kpi-xxl .kpi-value {
+      font-size: clamp(1.8rem, 4.5vw, 3rem);
+      font-weight: 900;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .kpi-xxl .kpi-value.accent {
+      color: var(--accent, #ff6b6b);
+      text-shadow: 0 0 12px var(--accent-glow, rgba(255,60,60,.35));
+    }
+    .kpi-xxl .kpi-sub { font-size: 0.72rem; color: #888; margin-top: 0.3rem; }
+    .hero-spark { margin-top: 0.6rem; }
+    .hero-spark-label {
+      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: #666; margin-bottom: 0.3rem;
+    }
 
     .section-label {
-      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 0.72rem;
       font-weight: 700;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: #555;
+      color: #888;
       margin-bottom: 1rem;
       padding-bottom: 0.6rem;
       border-bottom: 1px solid #2a2a2a;
     }
+    .section-label::before {
+      content: '';
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
     .section { margin-bottom: 2.8rem; }
 
-    /* totals */
-    .totals {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 0.8rem;
-    }
-    .total-card {
-      background: #222;
-      border: 1px solid #2e2e2e;
-      border-radius: 8px;
-      padding: 1rem 1.1rem;
-    }
-    .total-label {
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: #666;
-      margin-bottom: 0.4rem;
-    }
-    .total-value {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: #fff;
-    }
-    .total-value.red {
-      color: #ff6b6b;
-      text-shadow: 0 0 8px rgba(255,60,60,0.35);
-    }
-
-    /* generic grid */
+    /* cards */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 0.8rem;
     }
+    .grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+    .grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .grid.records { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
 
     .card {
-      background: #222;
-      border: 1px solid #2e2e2e;
-      border-radius: 8px;
+      background: #1f1f1f;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
       padding: 1rem 1.1rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .card:hover {
+      border-color: #3a3a3a;
     }
     .card-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
+      display: flex; justify-content: space-between; align-items: baseline;
       margin-bottom: 0.7rem;
     }
     .card-title {
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #bbb;
+      font-size: 0.8rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: #ccc;
     }
-    .card-badge {
-      font-size: 0.68rem;
-      color: #888;
-    }
+    .card-badge { font-size: 0.68rem; color: #888; }
 
-    /* map ref */
+    /* map ref (records + skill top) */
     .map-ref {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
+      display: flex; gap: 0.8rem; align-items: center;
     }
+    .map-ref.big .map-cover { width: 96px; height: 96px; }
     .map-cover {
-      width: 52px; height: 52px;
-      border-radius: 6px;
+      width: 56px; height: 56px;
+      border-radius: 8px;
       background: #111 center / cover no-repeat;
       flex-shrink: 0;
       border: 1px solid #333;
+      box-shadow: 0 0 0 1px #0a0a0a inset;
     }
-    .map-text { min-width: 0; }
+    .map-text { min-width: 0; flex: 1; }
     .map-title {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 0.9rem; font-weight: 600; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .map-sub {
-      font-size: 0.7rem;
-      color: #888;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 0.72rem; color: #888;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .map-diff {
-      font-size: 0.7rem;
-      color: #ff8080;
-      margin-top: 0.1rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 0.72rem; color: var(--accent, #ff8080);
+      margin-top: 0.15rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .map-value {
       margin-left: auto;
-      font-size: 1.1rem;
-      font-weight: 800;
-      color: #fff;
+      font-size: 1.25rem; font-weight: 800; color: #fff;
       font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 10px var(--accent-glow);
     }
+    a.ext { color: inherit; text-decoration: none; display: block; }
+    a.ext:hover .map-title { color: var(--accent); }
 
-    /* bar chart (statuses / bpm histogram) */
-    .bars-v {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-    .bar-row {
-      display: grid;
-      grid-template-columns: 90px 1fr 70px;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .bar-label {
-      font-size: 0.72rem;
-      color: #aaa;
-      text-transform: capitalize;
-    }
-    .bar-track {
-      height: 10px;
-      background: #111;
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, rgba(255,40,40,0.55), rgba(255,120,120,0.85));
-      border-radius: 3px;
-    }
-    .bar-count {
-      font-size: 0.72rem;
-      color: #888;
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* rating type table */
-    .rt-head, .rt-row {
-      display: grid;
-      grid-template-columns: 100px 70px 70px 70px 1fr;
-      gap: 0.6rem;
-      padding: 0.5rem 0.2rem;
-      align-items: center;
-      font-size: 0.75rem;
-    }
-    .rt-head {
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #666;
-      border-bottom: 1px solid #2a2a2a;
-    }
-    .rt-row + .rt-row { border-top: 1px solid #222; }
-    .rt-type { color: #ff9090; font-weight: 600; }
-    .rt-num  { color: #bbb; font-variant-numeric: tabular-nums; }
-    .rt-top  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #888; font-size: 0.7rem; }
-    .rt-top a { color: #fff; text-decoration: none; }
-    .rt-top a:hover { text-decoration: underline; }
-
+    /* simple list (contributors) */
     .list-simple .item {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.4rem 0;
+      display: flex; justify-content: space-between;
+      padding: 0.45rem 0;
       border-top: 1px solid #2a2a2a;
-      font-size: 0.78rem;
+      font-size: 0.82rem;
     }
     .list-simple .item:first-child { border-top: 0; }
     .list-simple .item span:first-child {
-      color: #ddd;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       margin-right: 0.6rem;
     }
     .list-simple .item span:last-child {
-      color: #888;
+      color: var(--accent); font-weight: 600;
       font-variant-numeric: tabular-nums;
     }
+    .list-simple .item.ranked span:last-child { color: #888; font-weight: 400; }
 
-    a.ext {
-      color: inherit;
-      text-decoration: none;
-    }
-    a.ext:hover .map-title { color: #ff9090; }
-
-    .loading {
-      color: #555;
-      padding: 2rem;
-      text-align: center;
-      font-size: 0.85rem;
-    }
-
-    /* server load */
-    .load-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 0.8rem;
-    }
-    .load-card {
-      background: #1f1f1f;
-      border: 1px solid #2a2a2a;
-      border-radius: 8px;
-      padding: 0.8rem 1rem;
-    }
-    .load-label {
-      font-size: 0.6rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #666;
-      margin-bottom: 0.3rem;
-    }
-    .load-value {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #fff;
-      font-variant-numeric: tabular-nums;
-    }
-    .load-value.dim { color: #aaa; font-weight: 600; }
-    .load-sub {
-      font-size: 0.65rem;
-      color: #666;
-      margin-top: 0.15rem;
-    }
-
-    /* svg chart */
+    /* chart svg styles (per-section accent via currentColor) */
     .chart {
-      width: 100%;
-      height: 160px;
-      display: block;
+      width: 100%; height: 170px; display: block; color: var(--accent);
     }
-    .chart rect {
-      fill: rgba(255,60,60,0.55);
-      transition: fill 0.15s;
+    .chart rect.bar {
+      fill: currentColor; opacity: 0.7;
+      transition: opacity 0.15s;
     }
-    .chart rect:hover {
-      fill: rgba(255,120,120,0.9);
-    }
-    .chart .axis {
-      stroke: #333;
-      stroke-width: 1;
-    }
-    .chart .tick {
-      fill: #666;
-      font-size: 9px;
-      font-family: system-ui, sans-serif;
-    }
+    .chart rect.bar:hover { opacity: 1; }
+    .chart .axis { stroke: #333; stroke-width: 1; }
+    .chart .tick { fill: #666; font-size: 9px; font-family: system-ui, sans-serif; }
     .chart .bar-label {
-      fill: #aaa;
-      font-size: 9px;
-      text-anchor: middle;
+      fill: #aaa; font-size: 9px; text-anchor: middle;
     }
     .chart .bar-count {
-      fill: #fff;
-      font-size: 10px;
-      font-weight: 600;
-      text-anchor: middle;
+      fill: #fff; font-size: 10px; font-weight: 600; text-anchor: middle;
+    }
+
+    /* calendar heatmap */
+    .calendar {
+      display: block; width: 100%; height: 120px;
+      color: var(--accent);
+    }
+    .calendar rect.day {
+      stroke: #161616; stroke-width: 1;
+    }
+    .calendar .month-tick { fill: #666; font-size: 10px; }
+
+    /* sparkline */
+    .spark { display: block; width: 100%; height: 40px; color: var(--accent); }
+    .spark path.fill { fill: currentColor; opacity: 0.2; }
+    .spark path.line { stroke: currentColor; stroke-width: 1.5; fill: none; }
+
+    /* radar */
+    .radar { display: block; width: 100%; height: 280px; color: var(--accent); }
+    .radar polygon.web { fill: none; stroke: #2d2d2d; stroke-width: 1; }
+    .radar line.axis { stroke: #2d2d2d; stroke-width: 1; }
+    .radar polygon.area {
+      fill: currentColor; fill-opacity: 0.25;
+      stroke: currentColor; stroke-width: 1.5;
+    }
+    .radar circle.point { fill: currentColor; }
+    .radar text.axis-label {
+      fill: #aaa; font-size: 10px; font-family: system-ui, sans-serif;
+    }
+
+    /* rating type card — mini histo + top */
+    .rt-card .rt-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.4rem;
+      margin: 0.4rem 0 0.8rem;
+    }
+    .rt-card .rt-stat {
+      text-align: center;
+      padding: 0.3rem 0.2rem;
+      background: #181818;
+      border-radius: 5px;
+    }
+    .rt-card .rt-stat-label {
+      font-size: 0.58rem; color: #666;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .rt-card .rt-stat-value {
+      font-size: 0.85rem; color: var(--accent); font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* feature flags */
+    .flag-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 60px;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.4rem 0;
+    }
+    .flag-label { font-size: 0.8rem; color: #ddd; text-transform: capitalize; }
+    .flag-bar {
+      height: 10px; background: #111; border-radius: 3px; overflow: hidden;
+    }
+    .flag-fill {
+      height: 100%;
+      background: var(--accent);
+      opacity: 0.7;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+    .flag-pct {
+      font-size: 0.78rem; color: #fff; font-weight: 600;
+      text-align: right; font-variant-numeric: tabular-nums;
+    }
+
+    /* tag cloud */
+    .tag-cloud {
+      display: flex; flex-wrap: wrap; gap: 0.5rem 0.6rem;
+      padding: 0.3rem 0;
+    }
+    .tag-cloud .tag {
+      color: #ddd;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 999px;
+      padding: 0.2rem 0.7rem;
+      transition: background .15s, color .15s, border-color .15s;
+      cursor: default;
+    }
+    .tag-cloud .tag:hover {
+      background: var(--accent);
+      color: #0f0f0f;
+      border-color: var(--accent);
+    }
+
+    /* server load compact strip */
+    .server-strip {
+      display: flex;
+      gap: 1.2rem;
+      flex-wrap: wrap;
+      padding: 0.6rem 1rem;
+      background: #181818;
+      border: 1px solid #242424;
+      border-radius: 8px;
+      margin-bottom: 1.6rem;
+      font-size: 0.72rem;
+    }
+    .server-strip .ss-item { display: flex; gap: 0.3rem; color: #777; }
+    .server-strip .ss-item b { color: #ccc; font-weight: 600; }
+    .server-strip .ss-item.err { color: #ff6b6b; }
+
+    .loading { color: #555; padding: 2rem; text-align: center; font-size: 0.85rem; }
+
+    @media (max-width: 560px) {
+      .hero { padding: 1.6rem 1.2rem; }
+      .map-ref.big .map-cover { width: 72px; height: 72px; }
     }
   </style>
 </head>
@@ -349,75 +366,44 @@
       <span class="nav-updated" id="updated"></span>
     </nav>
 
-    <h1 class="title">Stats</h1>
-    <div class="subtitle">aggregate view of the osu!mania corpus</div>
-
-    <div class="section">
-      <div class="section-label">Server load</div>
-      <div id="load" class="load-grid"></div>
+    <div class="server-strip" id="server-strip">
+      <div class="ss-item"><span>loading…</span></div>
     </div>
 
     <div id="root" class="loading">loading…</div>
   </div>
 
   <script>
-    /* ── particle mesh (same as status) ─────────────── */
+    /* ── particle mesh bg ─────────────── */
     const canvas = document.getElementById('bg');
     const ctx    = canvas.getContext('2d');
     let W = window.innerWidth, H = window.innerHeight;
     canvas.width = W; canvas.height = H;
-    window.addEventListener('resize', () => {
-      W = window.innerWidth; H = window.innerHeight;
-      canvas.width = W; canvas.height = H;
-    });
+    window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; });
     const PARTICLE_COUNT=60, CONNECT_DIST=160, SPEED=0.35, CELL=160;
     const particles = Array.from({length:PARTICLE_COUNT},()=>({
       x:Math.random()*W, y:Math.random()*H,
       vx:(Math.random()-0.5)*SPEED, vy:(Math.random()-0.5)*SPEED
     }));
-    function buildGrid(){
-      const cols=Math.ceil(W/CELL), rows=Math.ceil(H/CELL);
-      const grid=new Array(cols*rows).fill(null).map(()=>[]);
-      for(const p of particles){
-        const cx=Math.min(Math.floor(p.x/CELL),cols-1);
-        const cy=Math.min(Math.floor(p.y/CELL),rows-1);
-        grid[cy*cols+cx].push(p);
-      }
-      return {grid,cols,rows};
-    }
     function tickBg(){
       ctx.clearRect(0,0,W,H);
       for(const p of particles){
         p.x+=p.vx; p.y+=p.vy;
-        if(p.x<0){p.x=0;p.vx*=-1;} if(p.x>W){p.x=W;p.vx*=-1;}
-        if(p.y<0){p.y=0;p.vy*=-1;} if(p.y>H){p.y=H;p.vy*=-1;}
+        if(p.x<0||p.x>W) p.vx*=-1;
+        if(p.y<0||p.y>H) p.vy*=-1;
       }
-      const {grid,cols,rows}=buildGrid();
-      const seen=new Set();
-      for(let cy=0;cy<rows;cy++) for(let cx=0;cx<cols;cx++){
-        const cell=grid[cy*cols+cx];
-        for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
-          const nx=cx+dx, ny=cy+dy;
-          if(nx<0||ny<0||nx>=cols||ny>=rows) continue;
-          const nc=grid[ny*cols+nx];
-          for(const a of cell) for(const b of nc){
-            if(a===b) continue;
-            const ia=particles.indexOf(a), ib=particles.indexOf(b);
-            const key = ia<ib ? `${ia}-${ib}` : `${ib}-${ia}`;
-            if(seen.has(key)) continue;
-            seen.add(key);
-            const d=Math.hypot(a.x-b.x,a.y-b.y);
-            if(d>CONNECT_DIST) continue;
-            const t=1-d/CONNECT_DIST;
-            ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
-            ctx.strokeStyle=`rgba(255,40,40,${t*0.35})`;
-            ctx.lineWidth=t*1.2; ctx.stroke();
-          }
-        }
+      for(let i=0;i<particles.length;i++) for(let j=i+1;j<particles.length;j++){
+        const a=particles[i], b=particles[j];
+        const d=Math.hypot(a.x-b.x,a.y-b.y);
+        if(d>CONNECT_DIST) continue;
+        const t=1-d/CONNECT_DIST;
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=`rgba(255,40,40,${t*0.25})`;
+        ctx.lineWidth=t*1.2; ctx.stroke();
       }
       for(const p of particles){
-        ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2);
-        ctx.fillStyle='rgba(255,80,80,0.55)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x,p.y,2.5,0,Math.PI*2);
+        ctx.fillStyle='rgba(255,80,80,0.5)'; ctx.fill();
       }
       requestAnimationFrame(tickBg);
     }
@@ -425,7 +411,7 @@
 
     /* ── helpers ── */
     const fmtInt = n => n == null ? '—' : Number(n).toLocaleString('en-US');
-    const fmtFloat = (n, d=2) => n == null ? '—' : Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+    const fmtFloat = (n, d=2) => n == null || Number.isNaN(Number(n)) ? '—' : Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
     const fmtTime = s => {
       if (s == null) return '—';
       s = Math.round(s);
@@ -435,30 +421,21 @@
     const fmtUptime = s => {
       if (s == null) return '—';
       const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
-      if (d) return `${d}d ${h}h`;
-      if (h) return `${h}h ${m}m`;
-      return `${m}m ${s%60}s`;
+      if (d) return `${d}d ${h}h`; if (h) return `${h}h ${m}m`; return `${m}m ${s%60}s`;
     };
     const fmtMB = b => b == null ? '—' : `${(b/1024/1024).toFixed(1)} MB`;
-    const SKILL_LABEL = {
-      stream:'Stream', jumpstream:'Jumpstream', handstream:'Handstream',
-      stamina:'Stamina', jackspeed:'Jackspeed', chordjack:'Chordjack', technical:'Technical'
-    };
+    const fmtPct = n => `${(n*100).toFixed(1)}%`;
+    const SKILL_LABEL = { stream:'Stream', jumpstream:'Jumpstream', handstream:'Handstream', stamina:'Stamina', jackspeed:'Jackspeed', chordjack:'Chordjack', technical:'Technical' };
     const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const mapLink = m => !m ? '#' : (m.osuId ? `https://osu.ppy.sh/beatmaps/${m.osuId}` : '#');
+    const setLink = s => !s ? '#' : (s.osuId ? `https://osu.ppy.sh/beatmapsets/${s.osuId}` : '#');
 
-    function mapLink(m) {
-      if (!m) return '';
-      return m.osuId
-        ? `https://osu.ppy.sh/beatmaps/${m.osuId}`
-        : '#';
-    }
-    function mapCard(m, value, valueFmt = fmtFloat) {
-      if (!m) return `<div class="map-ref"><div class="map-text"><div class="map-sub">no data</div></div></div>`;
+    function mapCard(m, value, valueFmt = v => fmtFloat(v, 2), opts = {}) {
+      if (!m) return `<div class="map-ref${opts.big?' big':''}"><div class="map-text"><div class="map-sub">no data</div></div></div>`;
       const cover = m.coverUrl ? `style="background-image:url('${esc(m.coverUrl)}')"` : '';
-      const href = mapLink(m);
       return `
-        <a class="ext" href="${href}" target="_blank" rel="noopener">
-          <div class="map-ref">
+        <a class="ext" href="${mapLink(m)}" target="_blank" rel="noopener">
+          <div class="map-ref${opts.big?' big':''}">
             <div class="map-cover" ${cover}></div>
             <div class="map-text">
               <div class="map-title">${esc(m.artist)} — ${esc(m.title)}</div>
@@ -467,77 +444,149 @@
             </div>
             ${value != null ? `<div class="map-value">${valueFmt(value)}</div>` : ''}
           </div>
-        </a>
-      `;
+        </a>`;
     }
 
-    function bars(items, keyFn, labelFn, countFn) {
-      const total = items.reduce((a,b)=>a+countFn(b),0) || 1;
-      return `<div class="bars-v">` + items.map(it => {
-        const c = countFn(it);
-        const pct = (c/total)*100;
-        return `
-          <div class="bar-row">
-            <div class="bar-label">${labelFn(it)}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
-            <div class="bar-count">${fmtInt(c)}</div>
-          </div>
-        `;
-      }).join('') + `</div>`;
-    }
-
-    /**
-     * Vertical SVG bar chart.
-     * items: [{ label, count }]
-     * opts:  { width, height, showCount }
-     */
+    /* ── vertical SVG bar chart ── */
     function svgChart(items, opts = {}) {
       const W = opts.width  ?? 520;
-      const H = opts.height ?? 160;
-      const pad = { t: 12, r: 10, b: 26, l: 32 };
+      const H = opts.height ?? 170;
+      const pad = { t: 14, r: 10, b: 28, l: 34 };
       const plotW = W - pad.l - pad.r;
       const plotH = H - pad.t - pad.b;
-
       if (!items.length) return `<svg class="chart" viewBox="0 0 ${W} ${H}"></svg>`;
-
-      const max = Math.max(...items.map(it => it.count));
+      const max = Math.max(...items.map(it => it.count), 1);
       const barW = plotW / items.length;
-      const gap = Math.max(2, barW * 0.15);
-
-      // y ticks: 4 steps
-      const ticks = Array.from({length:4}, (_, i) => Math.round((max/3)*(i+0)));
-      const yScale = v => plotH - (v / (max || 1)) * plotH;
-
+      const gap = Math.max(2, barW * 0.18);
+      const ticks = Array.from({length: 4}, (_, i) => Math.round((max / 3) * i));
+      const yScale = v => plotH - (v / max) * plotH;
       const gridLines = ticks.map(t => {
         const y = pad.t + yScale(t);
         return `<line class="axis" x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" opacity="0.3"/>
                 <text class="tick" x="${pad.l-4}" y="${y+3}" text-anchor="end">${fmtInt(t)}</text>`;
       }).join('');
-
       const bars = items.map((it, i) => {
-        const h = (it.count / (max || 1)) * plotH;
-        const x = pad.l + i*barW + gap/2;
+        const h = (it.count / max) * plotH;
+        const x = pad.l + i * barW + gap / 2;
         const y = pad.t + plotH - h;
-        const cx = x + (barW - gap)/2;
-        const label = String(it.label);
-        const countLbl = opts.showCount === false
-          ? ''
-          : `<text class="bar-count" x="${cx}" y="${y-4}">${fmtInt(it.count)}</text>`;
+        const cx = x + (barW - gap) / 2;
         return `
           <g>
-            <rect x="${x}" y="${y}" width="${barW-gap}" height="${h}" rx="2">
-              <title>${esc(label)}: ${fmtInt(it.count)}</title>
+            <rect class="bar" x="${x}" y="${y}" width="${barW-gap}" height="${h}" rx="2">
+              <title>${esc(String(it.label))}: ${fmtInt(it.count)}</title>
             </rect>
-            ${countLbl}
-            <text class="bar-label" x="${cx}" y="${H-8}">${esc(label)}</text>
-          </g>
-        `;
+            ${opts.showCount === false ? '' : `<text class="bar-count" x="${cx}" y="${y-4}">${fmtInt(it.count)}</text>`}
+            <text class="bar-label" x="${cx}" y="${H-10}">${esc(String(it.label))}</text>
+          </g>`;
       }).join('');
-
       return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
         ${gridLines}
         <line class="axis" x1="${pad.l}" y1="${pad.t+plotH}" x2="${W-pad.r}" y2="${pad.t+plotH}"/>
         ${bars}
+      </svg>`;
+    }
+
+    /* ── sparkline ── */
+    function sparkline(points, opts = {}) {
+      const W = opts.width ?? 320;
+      const H = opts.height ?? 40;
+      if (!points.length) return `<svg class="spark" viewBox="0 0 ${W} ${H}"></svg>`;
+      const max = Math.max(...points.map(p => p.count), 1);
+      const step = W / Math.max(points.length - 1, 1);
+      const pts = points.map((p, i) => [i*step, H - (p.count / max) * (H-4) - 2]);
+      const line = pts.map((p,i) => (i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+      const fill = `${line} L ${W} ${H} L 0 ${H} Z`;
+      return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <path class="fill" d="${fill}"/>
+        <path class="line" d="${line}"/>
+      </svg>`;
+    }
+
+    /* ── calendar heatmap GitHub-style ── */
+    function calendarHeatmap(days) {
+      const W = 880, H = 120;
+      const cell = 11, gap = 2;
+      const rowH = cell + gap;
+      const colW = cell + gap;
+      const pad = { t: 16, l: 22 };
+      if (!days.length) return `<svg class="calendar" viewBox="0 0 ${W} ${H}"></svg>`;
+
+      const byDay = new Map(days.map(d => [d.day, d.count]));
+      const max = Math.max(...days.map(d => d.count), 1);
+
+      // build 365 days from 52 weeks back to today
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const start = new Date(today); start.setDate(today.getDate() - 364);
+      while (start.getDay() !== 0) start.setDate(start.getDate() - 1); // align Sunday
+
+      const cells = [];
+      const monthTicks = [];
+      let cursor = new Date(start);
+      let col = 0;
+      let lastMonth = -1;
+      while (cursor <= today) {
+        const row = cursor.getDay();
+        const iso = cursor.toISOString().slice(0,10);
+        const count = byDay.get(iso) ?? 0;
+        const intensity = count === 0 ? 0 : Math.min(1, 0.18 + (count / max) * 0.82);
+        const x = pad.l + col * colW;
+        const y = pad.t + row * rowH;
+        cells.push(`<rect class="day" x="${x}" y="${y}" width="${cell}" height="${cell}" rx="2"
+          fill="currentColor" fill-opacity="${intensity.toFixed(2)}">
+          <title>${iso} — ${fmtInt(count)}</title>
+        </rect>`);
+        const m = cursor.getMonth();
+        if (m !== lastMonth && cursor.getDate() <= 7) {
+          const label = cursor.toLocaleDateString('en-US', { month: 'short' });
+          monthTicks.push(`<text class="month-tick" x="${x}" y="${pad.t - 4}">${label}</text>`);
+          lastMonth = m;
+        }
+        if (row === 6) col++;
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return `<svg class="calendar" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        ${monthTicks.join('')}
+        ${cells.join('')}
+      </svg>`;
+    }
+
+    /* ── radar chart ── */
+    function radar(values, labels, opts = {}) {
+      const W = opts.width ?? 320, H = opts.height ?? 280;
+      const cx = W/2, cy = H/2;
+      const r = Math.min(W, H)/2 - 36;
+      const n = values.length;
+      const max = Math.max(...values, 0.01);
+      const angle = i => (Math.PI * 2 * i) / n - Math.PI/2;
+      const point = (i, v) => {
+        const t = v / max;
+        return [cx + Math.cos(angle(i)) * r * t, cy + Math.sin(angle(i)) * r * t];
+      };
+      const webs = [0.25, 0.5, 0.75, 1].map(s => {
+        const pts = Array.from({length:n}, (_, i) => {
+          const x = cx + Math.cos(angle(i)) * r * s;
+          const y = cy + Math.sin(angle(i)) * r * s;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        return `<polygon class="web" points="${pts}"/>`;
+      }).join('');
+      const axes = Array.from({length:n}, (_, i) => {
+        const x = cx + Math.cos(angle(i)) * r;
+        const y = cy + Math.sin(angle(i)) * r;
+        return `<line class="axis" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+      }).join('');
+      const pts = values.map((v,i) => point(i,v));
+      const poly = pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+      const dots = pts.map(p => `<circle class="point" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5"/>`).join('');
+      const txt = labels.map((l, i) => {
+        const lx = cx + Math.cos(angle(i)) * (r + 16);
+        const ly = cy + Math.sin(angle(i)) * (r + 16);
+        const anchor = Math.abs(Math.cos(angle(i))) < 0.1 ? 'middle' : Math.cos(angle(i)) > 0 ? 'start' : 'end';
+        return `<text class="axis-label" x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" text-anchor="${anchor}">${esc(l)}</text>`;
+      }).join('');
+      return `<svg class="radar" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        ${webs}${axes}<polygon class="area" points="${poly}"/>${dots}${txt}
       </svg>`;
     }
 
@@ -547,151 +596,225 @@
       const d = await res.json();
       const root = document.getElementById('root');
 
-      const totalsHtml = `
-        <div class="totals">
-          <div class="total-card"><div class="total-label">Beatmapsets</div><div class="total-value red">${fmtInt(d.totals.beatmapsets)}</div></div>
-          <div class="total-card"><div class="total-label">Beatmaps</div><div class="total-value red">${fmtInt(d.totals.beatmaps)}</div></div>
-          <div class="total-card"><div class="total-label">Ratings</div><div class="total-value">${fmtInt(d.totals.ratings)}</div></div>
-          <div class="total-card"><div class="total-label">Mania Skills</div><div class="total-value">${fmtInt(d.totals.skills)}</div></div>
-          <div class="total-card"><div class="total-label">Duplicates</div><div class="total-value">${fmtInt(d.totals.duplicates)}</div></div>
-        </div>
+      // HERO
+      const heroHtml = `
+        <section class="section hero" data-p="red">
+          <div>
+            <h1>Stats</h1>
+            <div class="hero-sub">aggregate view of the osu!mania corpus</div>
+          </div>
+          <div class="hero-kpis">
+            <div class="kpi-xxl">
+              <div class="kpi-label">Beatmapsets</div>
+              <div class="kpi-value accent">${fmtInt(d.totals.beatmapsets)}</div>
+              <div class="kpi-sub">${fmtInt(d.totals.duplicates)} duplicates tracked</div>
+            </div>
+            <div class="kpi-xxl">
+              <div class="kpi-label">Beatmaps</div>
+              <div class="kpi-value accent">${fmtInt(d.totals.beatmaps)}</div>
+              <div class="kpi-sub">${fmtInt(d.activity.d30)} added last 30d</div>
+            </div>
+            <div class="kpi-xxl">
+              <div class="kpi-label">Ratings</div>
+              <div class="kpi-value">${fmtInt(d.totals.ratings)}</div>
+              <div class="kpi-sub">${fmtInt(d.totals.skills)} skill rows</div>
+            </div>
+          </div>
+          <div class="hero-spark">
+            <div class="hero-spark-label">ingest — last 30 days</div>
+            ${sparkline(d.activity.sparkline)}
+          </div>
+        </section>
       `;
 
-      const keysHtml = `<div class="card">
-        <div class="card-head"><div class="card-title">By Key count</div><div class="card-badge">mania (cs)</div></div>
-        ${svgChart(d.keyModes.map(x => ({ label: `${x.keys}K`, count: x.count })))}
-      </div>`;
+      // ACTIVITY
+      const activityHtml = `
+        <section class="section" data-p="green">
+          <div class="section-label">Activity</div>
+          <div class="grid cols-3">
+            <div class="card">
+              <div class="card-head"><div class="card-title">Last 24h</div></div>
+              <div style="font-size:1.8rem;font-weight:800;color:var(--accent)">${fmtInt(d.activity.d1)}</div>
+              <div style="font-size:0.72rem;color:#888">beatmaps ingested</div>
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">Last 7 days</div></div>
+              <div style="font-size:1.8rem;font-weight:800;color:var(--accent)">${fmtInt(d.activity.d7)}</div>
+              <div style="font-size:0.72rem;color:#888">beatmaps ingested</div>
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">Last 30 days</div></div>
+              <div style="font-size:1.8rem;font-weight:800;color:var(--accent)">${fmtInt(d.activity.d30)}</div>
+              <div style="font-size:0.72rem;color:#888">beatmaps ingested · ${fmtInt(d.activity.ranked30)} ranked</div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:0.8rem">
+            <div class="card-head">
+              <div class="card-title">Ranked history</div>
+              <div class="card-badge">last 365 days · osu! status change</div>
+            </div>
+            ${calendarHeatmap(d.activity.calendar)}
+          </div>
+        </section>
+      `;
 
-      const statusHtml = `<div class="card">
-        <div class="card-head"><div class="card-title">By Status</div></div>
-        ${svgChart(d.statuses.map(x => ({ label: x.status, count: x.count })))}
-      </div>`;
+      // DISTRIBUTION
+      const distHtml = `
+        <section class="section" data-p="blue">
+          <div class="section-label">Distribution</div>
+          <div class="grid cols-2">
+            <div class="card">
+              <div class="card-head"><div class="card-title">Keys</div><div class="card-badge">cs · mania lanes</div></div>
+              ${svgChart(d.keyModes.map(x => ({ label: `${x.keys}K`, count: x.count })))}
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">Status</div></div>
+              ${svgChart(d.statuses.map(x => ({ label: x.status, count: x.count })))}
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <div class="card-title">BPM</div>
+                <div class="card-badge">med ${fmtFloat(d.bpm.median,0)} · avg ${fmtFloat(d.bpm.avg)} · max ${fmtFloat(d.bpm.max,0)}</div>
+              </div>
+              ${svgChart(d.bpm.histogram.map(x => ({ label: x.bucket, count: x.count })))}
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <div class="card-title">Length</div>
+                <div class="card-badge">med ${fmtTime(d.length.medianDrain)} · max ${fmtTime(d.length.maxDrain)}</div>
+              </div>
+              ${svgChart(d.length.buckets.map(x => ({ label: x.bucket, count: x.count })))}
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">OD</div><div class="card-badge">accuracy window</div></div>
+              ${svgChart(d.od.histogram.map(x => ({ label: x.bucket, count: x.count })))}
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">HP</div><div class="card-badge">drain rate</div></div>
+              ${svgChart(d.hp.histogram.map(x => ({ label: x.bucket, count: x.count })))}
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">Notes total</div><div class="card-badge">circles + sliders</div></div>
+              ${svgChart(d.notes.histogram.map(x => ({ label: x.bucket, count: x.count })))}
+            </div>
+            <div class="card">
+              <div class="card-head"><div class="card-title">Note density</div><div class="card-badge">notes / drain sec</div></div>
+              ${svgChart(d.notes.densityHistogram.map(x => ({ label: x.bucket, count: x.count })))}
+            </div>
+          </div>
+        </section>
+      `;
 
-      const bpmHtml = `<div class="card">
-        <div class="card-head">
-          <div class="card-title">BPM</div>
-          <div class="card-badge">min ${fmtFloat(d.bpm.min,0)} · avg ${fmtFloat(d.bpm.avg)} · med ${fmtFloat(d.bpm.median,0)} · max ${fmtFloat(d.bpm.max,0)}</div>
+      // RATING TYPES — per-type cards with mini histo
+      const rtCards = d.ratingTypes.map(rt => `
+        <div class="card rt-card">
+          <div class="card-head">
+            <div class="card-title" style="color:var(--accent)">${esc(rt.type)}</div>
+            <div class="card-badge">${fmtInt(rt.count)} maps</div>
+          </div>
+          <div class="rt-stats">
+            <div class="rt-stat"><div class="rt-stat-label">min</div><div class="rt-stat-value">${fmtFloat(rt.min,1)}</div></div>
+            <div class="rt-stat"><div class="rt-stat-label">p50</div><div class="rt-stat-value">${fmtFloat(rt.p50,1)}</div></div>
+            <div class="rt-stat"><div class="rt-stat-label">p95</div><div class="rt-stat-value">${fmtFloat(rt.p95,1)}</div></div>
+            <div class="rt-stat"><div class="rt-stat-label">max</div><div class="rt-stat-value">${fmtFloat(rt.max,1)}</div></div>
+          </div>
+          ${svgChart(rt.histogram.map(x => ({ label: x.bucket, count: x.count })), { height: 120, showCount: false })}
+          <div style="margin-top:0.6rem">
+            ${rt.top ? mapCard(rt.top, rt.top.rating, v => fmtFloat(v,2)) : ''}
+          </div>
         </div>
-        ${svgChart(d.bpm.histogram.map(x => ({ label: x.bucket, count: x.count })))}
-      </div>`;
+      `).join('');
 
-      const lenHtml = `<div class="card">
-        <div class="card-head"><div class="card-title">Length</div></div>
-        <div class="list-simple">
-          <div class="item"><span>Avg drain</span><span>${fmtTime(d.length.avgDrain)}</span></div>
-          <div class="item"><span>Max drain</span><span>${fmtTime(d.length.maxDrain)}</span></div>
-          <div class="item"><span>Avg total</span><span>${fmtTime(d.length.avgTotal)}</span></div>
-          <div class="item"><span>Max total</span><span>${fmtTime(d.length.maxTotal)}</span></div>
+      const ratingTypesHtml = `
+        <section class="section" data-p="violet">
+          <div class="section-label">Rating types</div>
+          <div class="grid">
+            ${rtCards}
+          </div>
+        </section>
+      `;
+
+      // RATIO PROFILE — radar per keys
+      const skillLabels = ['Stream','Jumps','Hands','Stamina','Jackspeed','Chordjack','Technical'];
+      const ratioCards = d.ratioByKeys.map(r => {
+        const values = [r.stream, r.jumpstream, r.handstream, r.stamina, r.jackspeed, r.chordjack, r.technical];
+        return `
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">${r.keys}K profile</div>
+              <div class="card-badge">${fmtInt(r.count)} maps · avg ratios</div>
+            </div>
+            ${radar(values, skillLabels)}
+          </div>
+        `;
+      }).join('');
+      const ratioHtml = `
+        <section class="section" data-p="cyan">
+          <div class="section-label">Ratio profile</div>
+          <div class="grid cols-2">
+            ${ratioCards}
+          </div>
+        </section>
+      `;
+
+      // RECORDS — bigger covers, full data set only
+      const recCard = (title, badge, m, fmt) => `
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">${title}</div>
+            <div class="card-badge">${badge}</div>
+          </div>
+          ${mapCard(m, m?.value, fmt, { big: true })}
         </div>
-      </div>`;
+      `;
+      const recordsHtml = `
+        <section class="section" data-p="red">
+          <div class="section-label">Records</div>
+          <div class="grid records">
+            ${recCard('Fastest BPM', 'bpm', d.extremes.fastest_bpm, v => fmtFloat(v, 0))}
+            ${recCard('Longest drain', 'hh:mm', d.extremes.longest_drain, fmtTime)}
+            ${recCard('Shortest drain', 'playable ≥30s', d.extremes.shortest_drain, fmtTime)}
+            ${recCard('Most notes', 'circles+sliders', d.extremes.most_notes, v => fmtInt(v))}
+            ${recCard('Max combo', 'combo', d.extremes.max_combo, v => fmtInt(v))}
+            ${recCard('Highest density', 'notes / sec', d.extremes.highest_density, v => fmtFloat(v, 1))}
+          </div>
+        </section>
+      `;
 
+      // SKILL TOP
       const skillHtml = `
-        <div class="section">
+        <section class="section" data-p="orange">
           <div class="section-label">Top beatmap per skill</div>
           <div class="grid">
             ${d.skillTop.map(s => `
               <div class="card">
                 <div class="card-head">
                   <div class="card-title">${SKILL_LABEL[s.skill] ?? s.skill}</div>
-                  <div class="card-badge">highest value</div>
+                  <div class="card-badge">highest raw</div>
                 </div>
                 ${mapCard(s.top, s.top?.value, v => fmtFloat(v,2))}
               </div>
             `).join('')}
           </div>
-        </div>
+        </section>
       `;
 
-      const rtRowsHtml = d.ratingTypes.map(rt => `
-        <div class="rt-row">
-          <div class="rt-type">${esc(rt.type)}</div>
-          <div class="rt-num">${fmtFloat(rt.min)}</div>
-          <div class="rt-num">${fmtFloat(rt.avg)}</div>
-          <div class="rt-num">${fmtFloat(rt.max)}</div>
-          <div class="rt-top">${
-            rt.top
-              ? `<a href="${mapLink(rt.top)}" target="_blank" rel="noopener">${esc(rt.top.artist)} — ${esc(rt.top.title)} [${esc(rt.top.difficulty)}]</a> <span style="color:#ff8080">(${fmtFloat(rt.top.rating)})</span>`
-              : '—'
-          }</div>
-        </div>
-      `).join('');
-
-      const rtHtml = `
-        <div class="section">
-          <div class="section-label">Rating types</div>
-          <div class="card">
-            <div class="rt-head">
-              <div>Type</div><div>Min</div><div>Avg</div><div>Max</div><div>Top map</div>
-            </div>
-            ${rtRowsHtml}
-          </div>
-        </div>
-      `;
-
-      const setCard = (s, label) => {
-        if (!s) return `<div class="map-ref"><div class="map-text"><div class="map-sub">no data</div></div></div>`;
-        const cover = s.coverUrl ? `style="background-image:url('${esc(s.coverUrl)}')"` : '';
-        const href = s.osuId ? `https://osu.ppy.sh/beatmapsets/${s.osuId}` : '#';
-        const value = label === 'plays' ? s.playCount : s.favouriteCount;
-        return `
-          <a class="ext" href="${href}" target="_blank" rel="noopener">
-            <div class="map-ref">
-              <div class="map-cover" ${cover}></div>
-              <div class="map-text">
-                <div class="map-title">${esc(s.artist)} — ${esc(s.title)}</div>
-                <div class="map-sub">by ${esc(s.creator)}</div>
-              </div>
-              <div class="map-value">${fmtInt(value)}</div>
-            </div>
-          </a>
-        `;
-      };
-
-      const ts = d.topSets ?? {};
-      const extremesHtml = `
-        <div class="section">
-          <div class="section-label">Records</div>
-          <div class="grid">
-            <div class="card">
-              <div class="card-head"><div class="card-title">Most played</div><div class="card-badge">beatmap</div></div>
-              ${mapCard(d.extremes.most_played, d.extremes.most_played?.value, v => fmtInt(v))}
-            </div>
-            <div class="card">
-              <div class="card-head"><div class="card-title">Highest osu! SR</div><div class="card-badge">star rating</div></div>
-              ${mapCard(d.extremes.highest_sr, d.extremes.highest_sr?.value, v => fmtFloat(v,2))}
-            </div>
-            <div class="card">
-              <div class="card-head"><div class="card-title">Most played set</div><div class="card-badge">plays</div></div>
-              ${setCard(ts.mostPlayed, 'plays')}
-            </div>
-            <div class="card">
-              <div class="card-head"><div class="card-title">Most favourited set</div><div class="card-badge">favourites</div></div>
-              ${setCard(ts.mostFavourited, 'favs')}
-            </div>
-            <div class="card">
-              <div class="card-head"><div class="card-title">Fastest BPM</div></div>
-              ${mapCard(d.extremes.fastest_bpm, d.extremes.fastest_bpm?.value, v => fmtFloat(v,0))}
-            </div>
-            <div class="card">
-              <div class="card-head"><div class="card-title">Longest drain</div></div>
-              ${mapCard(d.extremes.longest_drain, d.extremes.longest_drain?.value, fmtTime)}
-            </div>
-            <div class="card">
-              <div class="card-head"><div class="card-title">Most notes</div></div>
-              ${mapCard(d.extremes.most_notes, d.extremes.most_notes?.value, v => fmtInt(v))}
-            </div>
-            <div class="card">
-              <div class="card-head"><div class="card-title">Max combo</div></div>
-              ${mapCard(d.extremes.max_combo, d.extremes.max_combo?.value, v => fmtInt(v))}
-            </div>
-          </div>
-        </div>
-      `;
-
-      const listsHtml = `
-        <div class="section">
+      // CONTRIBUTORS
+      const contributorsHtml = `
+        <section class="section" data-p="amber">
           <div class="section-label">Contributors</div>
-          <div class="grid">
+          <div class="grid cols-3">
+            <div class="card">
+              <div class="card-head"><div class="card-title">Top mappers</div><div class="card-badge">by total notes</div></div>
+              <div class="list-simple">
+                ${d.topMappersByNotes.map(m => `
+                  <div class="item">
+                    <span>${esc(m.creator)} <span style="color:#666;font-size:0.7rem">· ${fmtInt(m.maps)} maps</span></span>
+                    <span>${fmtInt(m.totalNotes)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
             <div class="card">
               <div class="card-head"><div class="card-title">Top creators</div><div class="card-badge">by beatmaps</div></div>
               <div class="list-simple">
@@ -704,41 +827,88 @@
                 ${d.topArtists.map(a => `<div class="item"><span>${esc(a.artist)}</span><span>${fmtInt(a.count)}</span></div>`).join('')}
               </div>
             </div>
-            <div class="card">
-              <div class="card-head"><div class="card-title">Newest ranked</div><div class="card-badge">recent status changes</div></div>
-              <div class="list-simple">
-                ${d.newestRanked.map(s => `
-                  <div class="item">
-                    <span><a class="ext" style="color:#ddd" target="_blank" href="${s.osuId ? `https://osu.ppy.sh/beatmapsets/${s.osuId}` : '#'}">${esc(s.artist)} — ${esc(s.title)}</a></span>
-                    <span>${s.rankedAt ? s.rankedAt.slice(0,10) : ''}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
+          </div>
+        </section>
+      `;
+
+      // CATALOG — features + newest ranked + tag cloud
+      const tagMax = Math.max(1, ...d.tagCloud.map(t => t.count));
+      const tagMin = Math.min(...d.tagCloud.map(t => t.count));
+      const tagSize = c => {
+        if (tagMax === tagMin) return 0.85;
+        const t = (c - tagMin) / (tagMax - tagMin);
+        return 0.7 + t * 0.9;
+      };
+
+      const featuresHtml = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">Catalog flags</div><div class="card-badge">${fmtInt(d.features.total)} sets</div></div>
+          <div class="flag-row">
+            <div class="flag-label">Video</div>
+            <div class="flag-bar"><div class="flag-fill" style="width:${(d.features.video*100).toFixed(1)}%"></div></div>
+            <div class="flag-pct">${fmtPct(d.features.video)}</div>
+          </div>
+          <div class="flag-row">
+            <div class="flag-label">Storyboard</div>
+            <div class="flag-bar"><div class="flag-fill" style="width:${(d.features.storyboard*100).toFixed(1)}%"></div></div>
+            <div class="flag-pct">${fmtPct(d.features.storyboard)}</div>
+          </div>
+          <div class="flag-row">
+            <div class="flag-label">Explicit</div>
+            <div class="flag-bar"><div class="flag-fill" style="width:${(d.features.explicit*100).toFixed(1)}%"></div></div>
+            <div class="flag-pct">${fmtPct(d.features.explicit)}</div>
           </div>
         </div>
       `;
 
-      root.classList.remove('loading');
-      root.innerHTML = `
-        <div class="section">
-          <div class="section-label">Totals</div>
-          ${totalsHtml}
-        </div>
-        <div class="section">
-          <div class="section-label">Distribution</div>
-          <div class="grid">
-            ${keysHtml}
-            ${statusHtml}
-            ${bpmHtml}
-            ${lenHtml}
+      const newestHtml = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">Newest ranked</div><div class="card-badge">osu! status changes</div></div>
+          <div class="list-simple">
+            ${d.newestRanked.map(s => `
+              <div class="item ranked">
+                <span><a class="ext" style="color:#ddd" target="_blank" href="${setLink(s)}">${esc(s.artist)} — ${esc(s.title)}</a></span>
+                <span>${s.rankedAt ? s.rankedAt.slice(0,10) : ''}</span>
+              </div>
+            `).join('')}
           </div>
         </div>
-        ${extremesHtml}
-        ${rtHtml}
-        ${skillHtml}
-        ${listsHtml}
       `;
+
+      const tagCloudHtml = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">Top tags</div><div class="card-badge">top ${d.tagCloud.length}</div></div>
+          <div class="tag-cloud">
+            ${d.tagCloud.map(t => `<span class="tag" style="font-size:${tagSize(t.count).toFixed(2)}rem" title="${fmtInt(t.count)} sets">${esc(t.tag)}</span>`).join('')}
+          </div>
+        </div>
+      `;
+
+      const catalogHtml = `
+        <section class="section" data-p="teal">
+          <div class="section-label">Catalog</div>
+          <div class="grid cols-2">
+            ${featuresHtml}
+            ${newestHtml}
+          </div>
+          <div style="margin-top:0.8rem">
+            ${tagCloudHtml}
+          </div>
+        </section>
+      `;
+
+      root.classList.remove('loading');
+      root.innerHTML = [
+        heroHtml,
+        activityHtml,
+        distHtml,
+        ratingTypesHtml,
+        ratioHtml,
+        recordsHtml,
+        skillHtml,
+        contributorsHtml,
+        catalogHtml,
+      ].join('');
 
       document.getElementById('updated').textContent =
         'Generated ' + new Date(d.generatedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
@@ -748,35 +918,22 @@
       document.getElementById('root').textContent = 'failed to load: ' + (e?.message ?? e);
     });
 
-    /* ── server load poller ── */
+    /* ── server load strip poller ── */
     async function loadServer() {
       try {
         const res = await fetch('/api/server-load');
         const s = await res.json();
-        const el = document.getElementById('load');
+        const el = document.getElementById('server-strip');
         el.innerHTML = `
-          <div class="load-card">
-            <div class="load-label">Uptime</div>
-            <div class="load-value">${fmtUptime(s.uptimeSec)}</div>
-          </div>
-          <div class="load-card">
-            <div class="load-label">Requests served</div>
-            <div class="load-value">${fmtInt(s.requests)}</div>
-          </div>
-          <div class="load-card">
-            <div class="load-label">Resident memory</div>
-            <div class="load-value">${fmtMB(s.memory.rssBytes)}</div>
-            <div class="load-sub">heap ${fmtMB(s.memory.heapUsedBytes)} / ${fmtMB(s.memory.heapTotalBytes)}</div>
-          </div>
-          <div class="load-card">
-            <div class="load-label">DB connections</div>
-            <div class="load-value">${fmtInt(s.db.total)}</div>
-            <div class="load-sub">${fmtInt(s.db.active)} active · ${fmtInt(s.db.idle)} idle</div>
-          </div>
+          <div class="ss-item"><span>uptime</span><b>${fmtUptime(s.uptimeSec)}</b></div>
+          <div class="ss-item"><span>requests</span><b>${fmtInt(s.requests)}</b></div>
+          <div class="ss-item"><span>rss</span><b>${fmtMB(s.memory.rssBytes)}</b></div>
+          <div class="ss-item"><span>heap</span><b>${fmtMB(s.memory.heapUsedBytes)} / ${fmtMB(s.memory.heapTotalBytes)}</b></div>
+          <div class="ss-item"><span>db</span><b>${fmtInt(s.db.total)}</b> total · <b>${fmtInt(s.db.active)}</b> active</div>
         `;
       } catch (e) {
-        document.getElementById('load').innerHTML =
-          `<div class="load-card"><div class="load-label">Server load</div><div class="load-value dim">offline</div></div>`;
+        document.getElementById('server-strip').innerHTML =
+          `<div class="ss-item err"><span>server load</span><b>offline</b></div>`;
       }
     }
     loadServer();

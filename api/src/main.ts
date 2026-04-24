@@ -40,7 +40,7 @@ app.get("/stats", (c) => c.html(statsPage));
 let statsCache: { at: number; data: unknown } | null = null;
 app.get("/api/stats", async (c) => {
   const now = Date.now();
-  if (statsCache && now - statsCache.at < 60_000) {
+  if (statsCache && now - statsCache.at < 86_400_000) {
     return c.json(statsCache.data);
   }
   const data = await getStats();
